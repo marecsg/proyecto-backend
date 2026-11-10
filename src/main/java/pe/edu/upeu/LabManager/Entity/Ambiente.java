@@ -11,20 +11,15 @@ public class Ambiente {
     @Column(name = "id_ambiente")
     private Integer idAmbiente;
 
-    @Column(name = "nombre", nullable = false, unique = true, length = 100)
+    @Column(name = "nombre", nullable = false, length = 150)
     private String nombre;
-
-    @ManyToOne
-    @JoinColumn(name = "id_encargado", nullable = false)
-    private Usuario encargado;
 
     public Ambiente() {
     }
 
-    public Ambiente(Integer idAmbiente, String nombre, Usuario encargado) {
+    public Ambiente(Integer idAmbiente, String nombre) {
         this.idAmbiente = idAmbiente;
         this.nombre = nombre;
-        this.encargado = encargado;
     }
 
     public Integer getIdAmbiente() {
@@ -41,13 +36,5 @@ public class Ambiente {
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
-    }
-
-    public Usuario getEncargado() {
-        return encargado;
-    }
-
-    public void setEncargado(Usuario encargado) {
-        this.encargado = encargado;
     }
 }

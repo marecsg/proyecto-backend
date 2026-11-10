@@ -7,7 +7,6 @@ import pe.edu.upeu.LabManager.Repository.AmbienteRepository;
 import pe.edu.upeu.LabManager.Services.AmbienteService;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class AmbienteServiceImpl implements AmbienteService {
@@ -16,17 +15,7 @@ public class AmbienteServiceImpl implements AmbienteService {
     private AmbienteRepository ambienteRepository;
 
     @Override
-    public List<Ambiente> listarAmbientes() {
+    public List<Ambiente> listAll() {
         return ambienteRepository.findAll();
-    }
-
-    @Override
-    public Optional<Ambiente> buscarPorId(Integer id) {
-        return ambienteRepository.findById(id);
-    }
-
-    @Override
-    public Optional<Ambiente> buscarPorNombre(String nombre) {
-        return ambienteRepository.findByNombre(nombre);
     }
 }

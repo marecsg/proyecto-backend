@@ -1,43 +1,42 @@
 package pe.edu.upeu.LabManager.Services.ServiceImpl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pe.edu.upeu.LabManager.Entity.Enums.Disponibilidad;
 import pe.edu.upeu.LabManager.Entity.Equipo;
 import pe.edu.upeu.LabManager.Repository.EquipoRepository;
-import pe.edu.upeu.LabManager.Services.EquipService;
+import pe.edu.upeu.LabManager.Services.EquipoService;
 
 import java.util.List;
-import java.util.Optional;
+
 
 @Service
-public class EquipoServiceImpl implements EquipService {
+public class EquipoServiceImpl implements EquipoService {
 
-    @Autowired
-    private EquipoRepository equipoRepository;
+    private final EquipoRepository equipoRepository;
+
+    public EquipoServiceImpl(EquipoRepository equipoRepository) {
+        this.equipoRepository = equipoRepository;
+    }
 
     @Override
-    public List<Equipo> listarEquipos() {
+    public List<Equipo> listAll() {
         return equipoRepository.findAll();
     }
 
     @Override
-    public Optional<Equipo> buscarPorId(Integer id) {
-        return equipoRepository.findById(id);
+    public Equipo listById(Integer idEquipo) {
+        return equipoRepository.findById(idEquipo)
+                .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
     }
 
     @Override
-    public Optional<Equipo> buscarPorCodigoQr(String codigoQr) {
-        return equipoRepository.findByCodigoQr(codigoQr);
+    public Equipo listByCodigoQr(String codigoQr) {
+        return equipoRepository.findByCodigoQr(codigoQr)
+                .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
     }
 
     @Override
-    public List<Equipo> listarPorAmbiente(Integer idAmbiente) {
-        return equipoRepository.findByAmbienteIdAmbiente(idAmbiente);
-    }
-
-    @Override
-    public List<Equipo> listarPorDisponibilidad(Disponibilidad disponibilidad) {
+    public List<Equipo> listByDisponibilidad(Disponibilidad disponibilidad) {
         return equipoRepository.findByDisponibilidad(disponibilidad);
     }
 }

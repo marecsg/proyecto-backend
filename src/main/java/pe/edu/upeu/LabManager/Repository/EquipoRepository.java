@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface EquipoRepository extends JpaRepository<Equipo, Integer> {
-    List<Equipo> findByAmbienteIdAmbiente(Integer idAmbiente);
-    List<Equipo> findByDisponibilidad(Disponibilidad disponibilidad);
     Optional<Equipo> findByCodigoQr(String codigoQr);
+    List<Equipo> findByDisponibilidad(Disponibilidad disponibilidad);
 }

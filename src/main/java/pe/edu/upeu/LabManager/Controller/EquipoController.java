@@ -1,48 +1,69 @@
 package pe.edu.upeu.LabManager.Controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import pe.edu.upeu.LabManager.Dto.AmbienteDto;
+import pe.edu.upeu.LabManager.Dto.EquipoDto;
 import pe.edu.upeu.LabManager.Entity.Enums.Disponibilidad;
 import pe.edu.upeu.LabManager.Entity.Equipo;
-import pe.edu.upeu.LabManager.Services.ServiceImpl.EquipoServiceImpl;
+import pe.edu.upeu.LabManager.Services.EquipoService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/equipos")
 public class EquipoController {
 
-    @Autowired
-    private EquipoServiceImpl equipoService;
+    private final EquipoService equipoService;
+
+    public EquipoController(EquipoService equipoService) {
+        this.equipoService = equipoService;
+    }
+
 
     @GetMapping
-    public List<Equipo> listarEquipos() {
-        return equipoService.listarEquipos();
+    public ResponseEntity<List<EquipoDto.Response>> listAll() {
+        List<EquipoDto.Response> response = equipoService.listAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Equipo> buscarPorId(@PathVariable Integer id) {
-        return equipoService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<EquipoDto.Response> listById(@PathVariable Integer id) {
+        Equipo equipo = equipoService.listById(id);
+        return ResponseEntity.ok(mapToResponse(equipo));
     }
 
-    @GetMapping("/qr/{codigo}")
-    public ResponseEntity<Equipo> buscarPorCodigoQr(@PathVariable String codigo) {
-        return equipoService.buscarPorCodigoQr(codigo)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/ambiente/{idAmbiente}")
-    public List<Equipo> listarPorAmbiente(@PathVariable Integer idAmbiente) {
-        return equipoService.listarPorAmbiente(idAmbiente);
+    @GetMapping("/qr/{codigoQr}")
+    public ResponseEntity<EquipoDto.Response> listByCodigoQr(@PathVariable String codigoQr) {
+        Equipo equipo = equipoService.listByCodigoQr(codigoQr);
+        return ResponseEntity.ok(mapToResponse(equipo));
     }
 
     @GetMapping("/disponibilidad/{disponibilidad}")
-    public List<Equipo> listarPorDisponibilidad(@PathVariable Disponibilidad disponibilidad) {
-        return equipoService.listarPorDisponibilidad(disponibilidad);
+    public ResponseEntity<List<EquipoDto.Response>> listByDisponibilidad(@PathVariable Disponibilidad disponibilidad) {
+        List<EquipoDto.Response> response = equipoService.listByDisponibilidad(disponibilidad).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+
+    private EquipoDto.Response mapToResponse(Equipo equipo) {
+        return new EquipoDto.Response(
+                equipo.getIdEquipo(),
+                equipo.getCodigoQr(),
+                equipo.getNombre(),
+                equipo.getDescripcion(),
+                new AmbienteDto(
+                        equipo.getAmbiente().getIdAmbiente(),
+                        equipo.getAmbiente().getNombre()
+                ),
+                equipo.getEstadoFisico(),
+                equipo.getDisponibilidad()
+        );
     }
 
 }

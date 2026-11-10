@@ -2,69 +2,83 @@ package pe.edu.upeu.LabManager.Services.ServiceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pe.edu.upeu.LabManager.Entity.Ambiente;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoTicket;
+import pe.edu.upeu.LabManager.Entity.Enums.TipoIncidencia;
+import pe.edu.upeu.LabManager.Entity.Equipo;
 import pe.edu.upeu.LabManager.Entity.TicketIncidencia;
+import pe.edu.upeu.LabManager.Entity.Usuario;
+import pe.edu.upeu.LabManager.Repository.AmbienteRepository;
+import pe.edu.upeu.LabManager.Repository.EquipoRepository;
 import pe.edu.upeu.LabManager.Repository.TicketIncidenciaRepository;
+import pe.edu.upeu.LabManager.Repository.UsuarioRepository;
 import pe.edu.upeu.LabManager.Services.TicketIncidenciaService;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
+
     @Autowired
-    private TicketIncidenciaRepository ticketIncidenciaRepository;
+    private TicketIncidenciaRepository ticketRepository;
+
+    @Autowired
+    private EquipoRepository equipoRepository;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private AmbienteRepository ambienteRepository;
 
     @Override
-    public List<TicketIncidencia> listarIncidencias() {
-        return ticketIncidenciaRepository.findAll();
+    public TicketIncidencia listById(Integer id) {
+        return ticketRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ticket no encontrado con ID: " + id));
     }
 
     @Override
-    public Optional<TicketIncidencia> buscarPorId(Integer id) {
-        return ticketIncidenciaRepository.findById(id);
+    public List<TicketIncidencia> listByAmbiente(Integer idAmbiente) {
+        return ticketRepository.findByAmbiente_IdAmbiente(idAmbiente);
     }
 
     @Override
-    public List<TicketIncidencia> listarPorEquipo(Integer idEquipo) {
-        return ticketIncidenciaRepository.findByEquipoIdEquipo(idEquipo);
-    }
+    public TicketIncidencia create(Integer idUsuario, Integer idAmbiente, Integer idEquipo, TipoIncidencia tipo, String descripcion) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-    @Override
-    public List<TicketIncidencia> listarPorAmbiente(Integer idAmbiente) {
-        return ticketIncidenciaRepository.findByAmbienteIdAmbiente(idAmbiente);
-    }
+        Ambiente ambiente = ambienteRepository.findById(idAmbiente)
+                .orElseThrow(() -> new RuntimeException("Ambiente no encontrado"));
 
-    @Override
-    public List<TicketIncidencia> listarPorEstado(EstadoTicket estado) {
-        return ticketIncidenciaRepository.findByEstadoTicket(estado);
-    }
+        Equipo equipo = null;
+        if (idEquipo != null) {
+            equipo = equipoRepository.findById(idEquipo).orElse(null);
+        }
 
-    @Override
-    public TicketIncidencia crearTicket(TicketIncidencia ticket) {
-        ticket.setEstadoTicket(EstadoTicket.ABIERTO);
+        TicketIncidencia ticket = new TicketIncidencia();
+        ticket.setUsuarioReporta(usuario);
+        ticket.setAmbiente(ambiente);
+        ticket.setEquipo(equipo);
+        ticket.setTipoIncidencia(tipo);
+        ticket.setDescripcion(descripcion);
+        ticket.setEstadoTicket(EstadoTicket.PENDIENTE);
         ticket.setFechaReporte(LocalDateTime.now());
-        return ticketIncidenciaRepository.save(ticket);
+
+        return ticketRepository.save(ticket);
     }
 
     @Override
-    public TicketIncidencia actualizarEstadoTicket(Integer idTicket, EstadoTicket nuevoEstado, String respuestaEncargado) {
-        TicketIncidencia ticket = ticketIncidenciaRepository.findById(idTicket)
-                .orElseThrow(() -> new RuntimeException("Ticket no encontrado con ID: " + idTicket));
+    public TicketIncidencia updateResolucion(Integer id, EstadoTicket estado, String respuestaEncargado) {
+        TicketIncidencia ticket = listById(id);
 
-        if (nuevoEstado != null) {
-            ticket.setEstadoTicket(nuevoEstado);
+        ticket.setEstadoTicket(estado);
+        ticket.setRespuestaEncargado(respuestaEncargado);
 
-            if (nuevoEstado == EstadoTicket.RESUELTO) {
-                ticket.setFechaResolucion(LocalDateTime.now());
-            }
+        if (estado == EstadoTicket.RESUELTO) {
+            ticket.setFechaResolucion(LocalDateTime.now());
         }
 
-        if (respuestaEncargado != null) {
-            ticket.setRespuestaEncargado(respuestaEncargado);
-        }
-
-        return ticketIncidenciaRepository.save(ticket);
+        return ticketRepository.save(ticket);
     }
 }

@@ -23,7 +23,6 @@ public class TicketIncidencia {
     @JoinColumn(name = "id_ambiente", nullable = false)
     private Ambiente ambiente;
 
-    // Puede ser null si es un reporte global del aula
     @ManyToOne
     @JoinColumn(name = "id_equipo")
     private Equipo equipo;

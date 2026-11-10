@@ -3,6 +3,8 @@ package pe.edu.upeu.LabManager.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import pe.edu.upeu.LabManager.Dto.AmbienteDto;
+import pe.edu.upeu.LabManager.Dto.UsuarioDto;
 import pe.edu.upeu.LabManager.Entity.Usuario;
 import pe.edu.upeu.LabManager.Services.UsuarioService;
 
@@ -15,28 +17,34 @@ public class UsuarioController {
     @Autowired
     private UsuarioService usuarioService;
 
-    @GetMapping
-    public List<Usuario> listarUsuarios() {
-        return usuarioService.listarUsuarios();
-    }
-
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> buscarPorId(@PathVariable Integer id) {
-        return usuarioService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<UsuarioDto.Response> listById(@PathVariable Integer id) {
+        return ResponseEntity.ok(mapToResponse(usuarioService.listById(id)));
     }
 
-    @GetMapping("/correo/{correo}")
-    public ResponseEntity<Usuario> buscarPorCorreo(@PathVariable String correo) {
-        return usuarioService.buscarPorCorreo(correo)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/codigo/{codigo}")
+    public ResponseEntity<UsuarioDto.Response> findByCodigo(@PathVariable String codigo) {
+        return ResponseEntity.ok(mapToResponse(usuarioService.findByCodigoInstitucional(codigo)));
     }
 
-    @GetMapping("/rol/{idRol}")
-    public List<Usuario> listarPorRol(@PathVariable Integer idRol) {
-        return usuarioService.listarPorRol(idRol);
-    }
 
+    private UsuarioDto.Response mapToResponse(Usuario usuario) {
+        if (usuario == null) return null;
+
+        UsuarioDto.Response.RolDto rolDto = usuario.getRol() != null ?
+                new UsuarioDto.Response.RolDto(usuario.getRol().getIdRol(), usuario.getRol().getNombre()) : null;
+
+        AmbienteDto ambienteDto = usuario.getAmbiente() != null ?
+                new AmbienteDto(usuario.getAmbiente().getIdAmbiente(), usuario.getAmbiente().getNombre()) : null;
+
+        return new UsuarioDto.Response(
+                usuario.getIdUsuario(),
+                usuario.getCodigoInstitucional(),
+                usuario.getNombres(),
+                usuario.getApellidos(),
+                usuario.getCorreo(),
+                rolDto,
+                ambienteDto
+        );
+    }
 }

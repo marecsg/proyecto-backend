@@ -15,6 +15,11 @@ public class Usuario {
     @JoinColumn(name = "id_rol", nullable = false)
     private Rol rol;
 
+    // NUEVA RELACIÓN: Asignación del encargado a un laboratorio (nullable = true porque los estudiantes no tienen)
+    @ManyToOne
+    @JoinColumn(name = "id_ambiente", nullable = true)
+    private Ambiente ambiente;
+
     @Column(name = "codigo_institucional", nullable = false, unique = true, length = 20)
     private String codigoInstitucional;
 
@@ -33,9 +38,10 @@ public class Usuario {
     public Usuario() {
     }
 
-    public Usuario(Integer idUsuario, Rol rol, String codigoInstitucional, String nombres, String apellidos, String correo, String passwordHash) {
+    public Usuario(Integer idUsuario, Rol rol, Ambiente ambiente, String codigoInstitucional, String nombres, String apellidos, String correo, String passwordHash) {
         this.idUsuario = idUsuario;
         this.rol = rol;
+        this.ambiente = ambiente;
         this.codigoInstitucional = codigoInstitucional;
         this.nombres = nombres;
         this.apellidos = apellidos;
@@ -57,6 +63,14 @@ public class Usuario {
 
     public void setRol(Rol rol) {
         this.rol = rol;
+    }
+
+    public Ambiente getAmbiente() {
+        return ambiente;
+    }
+
+    public void setAmbiente(Ambiente ambiente) {
+        this.ambiente = ambiente;
     }
 
     public String getCodigoInstitucional() {

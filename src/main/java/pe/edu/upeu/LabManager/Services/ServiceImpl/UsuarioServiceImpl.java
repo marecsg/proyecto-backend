@@ -6,9 +6,6 @@ import pe.edu.upeu.LabManager.Entity.Usuario;
 import pe.edu.upeu.LabManager.Repository.UsuarioRepository;
 import pe.edu.upeu.LabManager.Services.UsuarioService;
 
-import java.util.List;
-import java.util.Optional;
-
 @Service
 public class UsuarioServiceImpl implements UsuarioService {
 
@@ -16,23 +13,14 @@ public class UsuarioServiceImpl implements UsuarioService {
     private UsuarioRepository usuarioRepository;
 
     @Override
-    public List<Usuario> listarUsuarios() {
-        return usuarioRepository.findAll();
+    public Usuario listById(Integer id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
     }
 
     @Override
-    public Optional<Usuario> buscarPorId(Integer id) {
-        return usuarioRepository.findById(id);
+    public Usuario findByCodigoInstitucional(String codigoInstitucional) {
+        return usuarioRepository.findByCodigoInstitucional(codigoInstitucional)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con el código: " + codigoInstitucional));
     }
-
-    @Override
-    public Optional<Usuario> buscarPorCorreo(String correo) {
-        return usuarioRepository.findByCorreo(correo);
-    }
-
-    @Override
-    public List<Usuario> listarPorRol(Integer idRol) {
-        return usuarioRepository.findByRolIdRol(idRol);
-    }
-
 }
