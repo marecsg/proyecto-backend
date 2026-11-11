@@ -93,9 +93,15 @@ public class SolicitudServiceImpl implements SolicitudService {
     }
 
     @Override
+    @Transactional
     public Solicitud cambiarEstado(Integer idSolicitud, EstadoSolicitud nuevoEstado) {
         Solicitud solicitud = listById(idSolicitud);
         solicitud.setEstadoSolicitud(nuevoEstado);
         return solicitudRepository.save(solicitud);
+    }
+
+    @Override
+    public boolean verificarDisponibilidadEquipo(Integer idEquipo, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        return !solicitudRepository.existeReservaAprobada(idEquipo, fechaInicio, fechaFin);
     }
 }

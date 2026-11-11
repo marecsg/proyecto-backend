@@ -22,7 +22,7 @@ public class DetallePrestamo {
     private Equipo equipo;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "estado_item", nullable = false)
+    @Column(name = "estado_item", nullable = true)
     private EstadoItem estadoItem;
 
     @Enumerated(EnumType.STRING)

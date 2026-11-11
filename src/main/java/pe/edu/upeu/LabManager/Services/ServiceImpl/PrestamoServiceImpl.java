@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.Disponibilidad;
+import pe.edu.upeu.LabManager.Entity.Enums.EstadoItem;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoPrestamo;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoSolicitud;
 import pe.edu.upeu.LabManager.Repository.*;
@@ -23,6 +24,9 @@ public class PrestamoServiceImpl implements PrestamoService {
 
     @Autowired
     private SolicitudService solicitudService;
+
+    @Autowired
+    private SolicitudRepository solicitudRepository;
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -57,6 +61,19 @@ public class PrestamoServiceImpl implements PrestamoService {
             throw new RuntimeException("Solo se pueden aprobar solicitudes en estado PENDIENTE.");
         }
 
+        for (DetalleSolicitud detSolicitud : solicitud.getDetalles()) {
+            boolean conflicto = solicitudRepository.existeReservaAprobada(
+                    detSolicitud.getEquipo().getIdEquipo(),
+                    solicitud.getFechaInicioReserva(),
+                    solicitud.getFechaFinReserva()
+            );
+
+            if (conflicto) {
+                throw new RuntimeException("El equipo " + detSolicitud.getEquipo().getNombre() +
+                        " presenta un conflicto de horario para la reserva seleccionada.");
+            }
+        }
+
         Usuario encargadoAprobacion = usuarioRepository.findById(idEncargadoAprobacion)
                 .orElseThrow(() -> new RuntimeException("Encargado de aprobación no encontrado"));
 
@@ -72,13 +89,10 @@ public class PrestamoServiceImpl implements PrestamoService {
 
         List<DetallePrestamo> detallesPrestamo = new ArrayList<>();
         for (DetalleSolicitud detSolicitud : solicitud.getDetalles()) {
-            Equipo equipo = detSolicitud.getEquipo();
-            equipo.setDisponibilidad(Disponibilidad.PRESTADO);
-            equipoRepository.save(equipo);
-
             DetallePrestamo detPrestamo = new DetallePrestamo();
             detPrestamo.setPrestamo(prestamoGuardado);
-            detPrestamo.setEquipo(equipo);
+            detPrestamo.setEquipo(detSolicitud.getEquipo());
+            detPrestamo.setEstadoItem(null);
 
             detallesPrestamo.add(detallePrestamoRepository.save(detPrestamo));
         }
@@ -93,13 +107,25 @@ public class PrestamoServiceImpl implements PrestamoService {
         Prestamo prestamo = listById(idPrestamo);
 
         if (nuevoEstado == EstadoPrestamo.EN_CURSO) {
+            if (prestamo.getEstadoPrestamo() != EstadoPrestamo.PENDIENTE) {
+                throw new RuntimeException("Solo se puede entregar un préstamo pendiente.");
+            }
+
             prestamo.setFechaInicioUso(LocalDateTime.now());
-        }
-        else if (nuevoEstado == EstadoPrestamo.CANCELADO) {
+
             for (DetallePrestamo det : prestamo.getDetalles()) {
                 Equipo equipo = det.getEquipo();
-                equipo.setDisponibilidad(Disponibilidad.DISPONIBLE);
+                equipo.setDisponibilidad(Disponibilidad.PRESTADO);
                 equipoRepository.save(equipo);
+            }
+
+        } else if (nuevoEstado == EstadoPrestamo.CANCELADO) {
+            if (prestamo.getEstadoPrestamo() != EstadoPrestamo.PENDIENTE) {
+                throw new RuntimeException("Solo se puede cancelar un préstamo pendiente.");
+            }
+
+            if (prestamo.getSolicitud() != null) {
+                solicitudService.cambiarEstado(prestamo.getSolicitud().getIdSolicitud(), EstadoSolicitud.CANCELADA);
             }
         }
 
@@ -117,10 +143,14 @@ public class PrestamoServiceImpl implements PrestamoService {
     ) {
         Prestamo prestamo = listById(idPrestamo);
 
+        if (prestamo.getEstadoPrestamo() != EstadoPrestamo.EN_CURSO) {
+            throw new RuntimeException("Solo se puede registrar la devolución de un préstamo en estado EN_CURSO.");
+        }
+
         Usuario encargadoDevolucion = usuarioRepository.findById(idEncargadoDevolucion)
                 .orElseThrow(() -> new RuntimeException("Encargado de devolución no encontrado"));
 
-        prestamo.setEstadoPrestamo(nuevoEstado);
+        prestamo.setEstadoPrestamo(nuevoEstado != null ? nuevoEstado : EstadoPrestamo.FINALIZADO);
         prestamo.setEncargadoDevolucion(encargadoDevolucion);
         prestamo.setFechaFinUso(LocalDateTime.now());
 
@@ -135,7 +165,21 @@ public class PrestamoServiceImpl implements PrestamoService {
                 detallePrestamoRepository.save(detalle);
 
                 Equipo equipo = detalle.getEquipo();
-                equipo.setDisponibilidad(Disponibilidad.DISPONIBLE);
+
+                if (itemDto.getEstadoItem() == EstadoItem.DEVUELTO) {
+                    String condicion = itemDto.getEstadoFisicoAlDevolver() != null
+                            ? itemDto.getEstadoFisicoAlDevolver().toString().toUpperCase()
+                            : "OPERATIVO";
+
+                    if (condicion.contains("OPERATIVO")) {
+                        equipo.setDisponibilidad(Disponibilidad.DISPONIBLE);
+                    } else {
+                        equipo.setDisponibilidad(Disponibilidad.NO_DISPONIBLE);
+                    }
+                } else if (itemDto.getEstadoItem() == EstadoItem.NO_DEVUELTO) {
+                    equipo.setDisponibilidad(Disponibilidad.NO_DISPONIBLE);
+                }
+
                 equipoRepository.save(equipo);
             }
         }

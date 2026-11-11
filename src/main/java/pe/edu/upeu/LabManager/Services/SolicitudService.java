@@ -12,4 +12,5 @@ public interface SolicitudService {
     Solicitud listById(Integer id);
     List<Solicitud> listByEstudiante(Integer idEstudiante);
     List<Solicitud> listByAmbiente(Integer idAmbiente);
+    boolean verificarDisponibilidadEquipo(Integer idEquipo, LocalDateTime fechaInicio, LocalDateTime fechaFin);
 }

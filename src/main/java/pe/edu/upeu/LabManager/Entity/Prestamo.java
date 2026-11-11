@@ -22,10 +22,10 @@ public class Prestamo {
     @JoinColumn(name = "id_encargado_aprobacion", nullable = false)
     private Usuario encargadoAprobacion;
 
-    @Column(name = "fecha_inicio_uso", nullable = false)
+    @Column(name = "fecha_inicio_uso")
     private LocalDateTime fechaInicioUso;
 
-    @Column(name = "fecha_fin_uso", nullable = false)
+    @Column(name = "fecha_fin_uso")
     private LocalDateTime fechaFinUso;
 
     @Column(name = "comentario_aprobacion", columnDefinition = "TEXT")
