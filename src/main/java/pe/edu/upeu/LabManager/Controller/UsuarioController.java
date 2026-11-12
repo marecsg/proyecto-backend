@@ -27,15 +27,14 @@ public class UsuarioController {
         return ResponseEntity.ok(mapToResponse(usuarioService.findByCodigoInstitucional(codigo)));
     }
 
-
     private UsuarioDto.Response mapToResponse(Usuario usuario) {
         if (usuario == null) return null;
 
-        UsuarioDto.Response.RolDto rolDto = usuario.getRol() != null ?
-                new UsuarioDto.Response.RolDto(usuario.getRol().getIdRol(), usuario.getRol().getNombre()) : null;
+        String nombreRol = (usuario.getRol() != null && usuario.getRol().getNombre() != null)
+                ? usuario.getRol().getNombre().toString() : null;
 
-        AmbienteDto ambienteDto = usuario.getAmbiente() != null ?
-                new AmbienteDto(usuario.getAmbiente().getIdAmbiente(), usuario.getAmbiente().getNombre()) : null;
+        Integer idAmbiente = (usuario.getAmbiente() != null) ? usuario.getAmbiente().getIdAmbiente() : null;
+        String nombreAmbiente = (usuario.getAmbiente() != null) ? usuario.getAmbiente().getNombre() : null;
 
         return new UsuarioDto.Response(
                 usuario.getIdUsuario(),
@@ -43,8 +42,9 @@ public class UsuarioController {
                 usuario.getNombres(),
                 usuario.getApellidos(),
                 usuario.getCorreo(),
-                rolDto,
-                ambienteDto
+                nombreRol,
+                idAmbiente,
+                nombreAmbiente
         );
     }
 }

@@ -85,100 +85,47 @@ public class PrestamoController {
     private PrestamoDto.Response mapToResponse(Prestamo prestamo) {
         if (prestamo == null) return null;
 
-        List<PrestamoDto.Response.DetalleResponse> detallesDto = null;
-        if (prestamo.getDetalles() != null) {
-            detallesDto = prestamo.getDetalles().stream().map(det ->
-                    new PrestamoDto.Response.DetalleResponse(
-                            det.getIdDetalle(),
-                            mapEquipoToDto(det.getEquipo()),
-                            det.getEstadoItem(),
-                            det.getEstadoFisicoAlDevolver(),
-                            det.getComentarioDevolucion()
-                    )
-            ).toList();
+        List<PrestamoDto.Response.DetalleResponse> detallesDto = prestamo.getDetalles().stream()
+                .map(det -> new PrestamoDto.Response.DetalleResponse(
+                        det.getIdDetalle(),
+                        det.getEquipo().getIdEquipo(),
+                        det.getEquipo().getCodigoQr(),
+                        det.getEquipo().getNombre(),
+                        det.getEstadoItem(),
+                        det.getEstadoFisicoAlDevolver(),
+                        det.getComentarioDevolucion()
+                )).toList();
+
+        Integer idSolicitud = prestamo.getSolicitud().getIdSolicitud();
+        String nombreEstudiante = prestamo.getSolicitud().getEstudiante().getNombres() + " " + prestamo.getSolicitud().getEstudiante().getApellidos();
+        String codigoEstudiante = prestamo.getSolicitud().getEstudiante().getCodigoInstitucional(); // <--- Aquí sacamos el código
+        String nombreAmbiente = prestamo.getSolicitud().getAmbiente().getNombre();
+
+        Integer idEncargadoAprobacion = prestamo.getEncargadoAprobacion().getIdUsuario();
+        String nombreEncargadoAprobacion = prestamo.getEncargadoAprobacion().getNombres() + " " + prestamo.getEncargadoAprobacion().getApellidos();
+
+        Integer idEncargadoDevolucion = null;
+        String nombreEncargadoDevolucion = null;
+        if (prestamo.getEncargadoDevolucion() != null) {
+            idEncargadoDevolucion = prestamo.getEncargadoDevolucion().getIdUsuario();
+            nombreEncargadoDevolucion = prestamo.getEncargadoDevolucion().getNombres() + " " + prestamo.getEncargadoDevolucion().getApellidos();
         }
 
         return new PrestamoDto.Response(
                 prestamo.getIdPrestamo(),
-                mapSolicitudToDto(prestamo.getSolicitud()),
-                mapUsuarioToDto(prestamo.getEncargadoAprobacion()),
-                mapUsuarioToDto(prestamo.getEncargadoDevolucion()),
+                idSolicitud,
+                nombreEstudiante,
+                codigoEstudiante,
+                nombreAmbiente,
+                idEncargadoAprobacion,
+                nombreEncargadoAprobacion,
+                idEncargadoDevolucion,
+                nombreEncargadoDevolucion,
                 prestamo.getFechaInicioUso(),
                 prestamo.getFechaFinUso(),
                 prestamo.getComentarioAprobacion(),
                 prestamo.getEstadoPrestamo(),
                 detallesDto
-        );
-    }
-
-    private UsuarioDto.Response mapUsuarioToDto(Usuario usuario) {
-        if (usuario == null) return null;
-
-        UsuarioDto.Response.RolDto rolDto = null;
-        if (usuario.getRol() != null) {
-            rolDto = new UsuarioDto.Response.RolDto(
-                    usuario.getRol().getIdRol(),
-                    usuario.getRol().getNombre()
-            );
-        }
-
-        return new UsuarioDto.Response(
-                usuario.getIdUsuario(),
-                usuario.getCodigoInstitucional(),
-                usuario.getNombres(),
-                usuario.getApellidos(),
-                usuario.getCorreo(),
-                rolDto,
-                mapAmbienteToDto(usuario.getAmbiente())
-        );
-    }
-
-    private EquipoDto.Response mapEquipoToDto(Equipo equipo) {
-        if (equipo == null) return null;
-
-        return new EquipoDto.Response(
-                equipo.getIdEquipo(),
-                equipo.getCodigoQr(),
-                equipo.getNombre(),
-                equipo.getDescripcion(),
-                mapAmbienteToDto(equipo.getAmbiente()),
-                equipo.getEstadoFisico(),
-                equipo.getDisponibilidad()
-        );
-    }
-
-    private AmbienteDto mapAmbienteToDto(Ambiente ambiente) {
-        if (ambiente == null) return null;
-
-        return new AmbienteDto(
-                ambiente.getIdAmbiente(),
-                ambiente.getNombre()
-        );
-    }
-
-    private SolicitudDto.Response mapSolicitudToDto(Solicitud solicitud) {
-        if (solicitud == null) return null;
-
-        List<SolicitudDto.Response.DetalleResponse> detallesSolicitudDto = null;
-        if (solicitud.getDetalles() != null) {
-            detallesSolicitudDto = solicitud.getDetalles().stream().map(det ->
-                    new SolicitudDto.Response.DetalleResponse(
-                            det.getIdDetalleSolicitud(),
-                            mapEquipoToDto(det.getEquipo())
-                    )
-            ).toList();
-        }
-
-        return new SolicitudDto.Response(
-                solicitud.getIdSolicitud(),
-                mapUsuarioToDto(solicitud.getEstudiante()),
-                mapAmbienteToDto(solicitud.getAmbiente()),
-                solicitud.getMotivoSolicitud(),
-                solicitud.getFechaInicioReserva(),
-                solicitud.getFechaFinReserva(),
-                solicitud.getFechaSolicitud(),
-                solicitud.getEstadoSolicitud(),
-                detallesSolicitudDto
         );
     }
 }

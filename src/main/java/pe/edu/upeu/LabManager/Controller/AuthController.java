@@ -46,21 +46,11 @@ public class AuthController {
         if (passwordMatch) {
             String token = jwtService.generarToken(usuario);
 
-            UsuarioDto.Response.RolDto rolDto = null;
-            if (usuario.getRol() != null) {
-                rolDto = new UsuarioDto.Response.RolDto(
-                        usuario.getRol().getIdRol(),
-                        usuario.getRol().getNombre()
-                );
-            }
+            String nombreRol = (usuario.getRol() != null && usuario.getRol().getNombre() != null)
+                    ? usuario.getRol().getNombre().toString() : null;
 
-            AmbienteDto ambienteDto = null;
-            if (usuario.getAmbiente() != null) {
-                ambienteDto = new AmbienteDto(
-                        usuario.getAmbiente().getIdAmbiente(),
-                        usuario.getAmbiente().getNombre()
-                );
-            }
+            Integer idAmbiente = (usuario.getAmbiente() != null) ? usuario.getAmbiente().getIdAmbiente() : null;
+            String nombreAmbiente = (usuario.getAmbiente() != null) ? usuario.getAmbiente().getNombre() : null;
 
             UsuarioDto.Response usuarioResponse = new UsuarioDto.Response(
                     usuario.getIdUsuario(),
@@ -68,8 +58,9 @@ public class AuthController {
                     usuario.getNombres(),
                     usuario.getApellidos(),
                     usuario.getCorreo(),
-                    rolDto,
-                    ambienteDto
+                    nombreRol,
+                    idAmbiente,
+                    nombreAmbiente
             );
 
             AuthDto.LoginResponse response = new AuthDto.LoginResponse(token, usuarioResponse);

@@ -8,8 +8,10 @@ public record SolicitudDto() {
 
     public record Response(
             Integer idSolicitud,
-            UsuarioDto.Response estudiante,
-            AmbienteDto ambiente,
+            Integer idEstudiante,
+            String nombreEstudiante,
+            Integer idAmbiente,
+            String nombreAmbiente,
             String motivoSolicitud,
             LocalDateTime fechaInicioReserva,
             LocalDateTime fechaFinReserva,
@@ -18,8 +20,9 @@ public record SolicitudDto() {
             List<DetalleResponse> detalles
     ) {
         public record DetalleResponse(
-                Integer idDetalleSolicitud,
-                EquipoDto.Response equipo
+                Integer idEquipo,        // Aplanado
+                String codigoQrEquipo,   // Aplanado
+                String nombreEquipo      // Aplanado
         ) {}
     }
 

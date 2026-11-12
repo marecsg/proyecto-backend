@@ -1,6 +1,7 @@
 package pe.edu.upeu.LabManager.Entity;
 
 import jakarta.persistence.*;
+import pe.edu.upeu.LabManager.Entity.Enums.Roles;
 
 @Entity
 @Table(name = "roles")
@@ -11,13 +12,14 @@ public class Rol {
     @Column(name = "id_rol")
     private Integer idRol;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "nombre", nullable = false, unique = true, length = 50)
-    private String nombre;
+    private Roles nombre;
 
     public Rol() {
     }
 
-    public Rol(Integer idRol, String nombre) {
+    public Rol(Integer idRol, Roles nombre) {
         this.idRol = idRol;
         this.nombre = nombre;
     }
@@ -30,11 +32,11 @@ public class Rol {
         this.idRol = idRol;
     }
 
-    public String getNombre() {
+    public Roles getNombre() {
         return nombre;
     }
 
-    public void setNombre(String nombre) {
+    public void setNombre(Roles nombre) {
         this.nombre = nombre;
     }
 }

@@ -73,47 +73,27 @@ public class SolicitudController {
     }
 
     private SolicitudDto.Response mapToResponse(Solicitud solicitud) {
+        if (solicitud == null) return null;
 
         List<SolicitudDto.Response.DetalleResponse> detallesDto = solicitud.getDetalles().stream()
                 .map(det -> new SolicitudDto.Response.DetalleResponse(
-                        det.getIdDetalleSolicitud(),
-                        new EquipoDto.Response(
-                                det.getEquipo().getIdEquipo(),
-                                det.getEquipo().getCodigoQr(),
-                                det.getEquipo().getNombre(),
-                                det.getEquipo().getDescripcion(),
-                                new AmbienteDto(
-                                        det.getEquipo().getAmbiente().getIdAmbiente(),
-                                        det.getEquipo().getAmbiente().getNombre()
-                                ),
-                                det.getEquipo().getEstadoFisico(),
-                                det.getEquipo().getDisponibilidad()
-                        )
+                        det.getEquipo().getIdEquipo(),
+                        det.getEquipo().getCodigoQr(),
+                        det.getEquipo().getNombre()
                 )).toList();
 
-        UsuarioDto.Response estudianteDto = new UsuarioDto.Response(
-                solicitud.getEstudiante().getIdUsuario(),
-                solicitud.getEstudiante().getCodigoInstitucional(),
-                solicitud.getEstudiante().getNombres(),
-                solicitud.getEstudiante().getApellidos(),
-                solicitud.getEstudiante().getCorreo(),
-                new UsuarioDto.Response.RolDto(
-                        solicitud.getEstudiante().getRol().getIdRol(),
-                        solicitud.getEstudiante().getRol().getNombre()
-                ),
-                solicitud.getEstudiante().getAmbiente() != null ? new AmbienteDto(
-                        solicitud.getEstudiante().getAmbiente().getIdAmbiente(),
-                        solicitud.getEstudiante().getAmbiente().getNombre()
-                ) : null
-        );
+        Integer idEstudiante = solicitud.getEstudiante().getIdUsuario();
+        String nombreEstudiante = solicitud.getEstudiante().getNombres() + " " + solicitud.getEstudiante().getApellidos();
+
+        Integer idAmbiente = solicitud.getAmbiente().getIdAmbiente();
+        String nombreAmbiente = solicitud.getAmbiente().getNombre();
 
         return new SolicitudDto.Response(
                 solicitud.getIdSolicitud(),
-                estudianteDto,
-                new AmbienteDto(
-                        solicitud.getAmbiente().getIdAmbiente(),
-                        solicitud.getAmbiente().getNombre()
-                ),
+                idEstudiante,
+                nombreEstudiante,
+                idAmbiente,
+                nombreAmbiente,
                 solicitud.getMotivoSolicitud(),
                 solicitud.getFechaInicioReserva(),
                 solicitud.getFechaFinReserva(),

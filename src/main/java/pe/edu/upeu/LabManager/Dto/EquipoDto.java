@@ -10,11 +10,11 @@ public record EquipoDto() {
             String codigoQr,
             String nombre,
             String descripcion,
-            AmbienteDto ambiente,
+            Integer idAmbiente,
+            String nombreAmbiente,
             EstadoFisico estadoFisico,
             Disponibilidad disponibilidad
-    ) {
-    }
+    ) {}
 
     public record UpdateRequest(
             EstadoFisico estadoFisico,

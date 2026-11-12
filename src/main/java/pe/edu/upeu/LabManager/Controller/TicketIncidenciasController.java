@@ -56,42 +56,43 @@ public class TicketIncidenciasController {
 
 
     private TicketIncidenciaDto.Response mapToResponse(TicketIncidencia ticket) {
+        if (ticket == null) return null;
 
-        UsuarioDto.Response usuarioDto = null;
+        Integer idUsuarioReporta = null;
+        String nombreUsuarioReporta = null;
         if (ticket.getUsuarioReporta() != null) {
-            UsuarioDto.Response.RolDto rolDto = ticket.getUsuarioReporta().getRol() != null ?
-                    new UsuarioDto.Response.RolDto(ticket.getUsuarioReporta().getRol().getIdRol(), ticket.getUsuarioReporta().getRol().getNombre()) : null;
-            AmbienteDto ambUser = ticket.getUsuarioReporta().getAmbiente() != null ?
-                    new AmbienteDto(ticket.getUsuarioReporta().getAmbiente().getIdAmbiente(), ticket.getUsuarioReporta().getAmbiente().getNombre()) : null;
-
-            usuarioDto = new UsuarioDto.Response(
-                    ticket.getUsuarioReporta().getIdUsuario(), ticket.getUsuarioReporta().getCodigoInstitucional(),
-                    ticket.getUsuarioReporta().getNombres(), ticket.getUsuarioReporta().getApellidos(),
-                    ticket.getUsuarioReporta().getCorreo(), rolDto, ambUser
-            );
+            idUsuarioReporta = ticket.getUsuarioReporta().getIdUsuario();
+            nombreUsuarioReporta = ticket.getUsuarioReporta().getNombres() + " " + ticket.getUsuarioReporta().getApellidos();
         }
 
-        AmbienteDto ambienteDto = null;
+        Integer idAmbiente = null;
+        String nombreAmbiente = null;
         if (ticket.getAmbiente() != null) {
-            ambienteDto = new AmbienteDto(ticket.getAmbiente().getIdAmbiente(), ticket.getAmbiente().getNombre());
+            idAmbiente = ticket.getAmbiente().getIdAmbiente();
+            nombreAmbiente = ticket.getAmbiente().getNombre();
         }
 
-        EquipoDto.Response equipoDto = null;
+        Integer idEquipo = null;
+        String nombreEquipo = null;
         if (ticket.getEquipo() != null) {
-            AmbienteDto ambEquipo = ticket.getEquipo().getAmbiente() != null ?
-                    new AmbienteDto(ticket.getEquipo().getAmbiente().getIdAmbiente(), ticket.getEquipo().getAmbiente().getNombre()) : null;
-
-            equipoDto = new EquipoDto.Response(
-                    ticket.getEquipo().getIdEquipo(), ticket.getEquipo().getCodigoQr(),
-                    ticket.getEquipo().getNombre(), ticket.getEquipo().getDescripcion(),
-                    ambEquipo, ticket.getEquipo().getEstadoFisico(), ticket.getEquipo().getDisponibilidad()
-            );
+            idEquipo = ticket.getEquipo().getIdEquipo();
+            nombreEquipo = ticket.getEquipo().getNombre();
         }
 
         return new TicketIncidenciaDto.Response(
-                ticket.getIdTicket(), usuarioDto, ambienteDto, equipoDto,
-                ticket.getTipoIncidencia(), ticket.getDescripcion(), ticket.getEstadoTicket(),
-                ticket.getFechaReporte(), ticket.getRespuestaEncargado(), ticket.getFechaResolucion()
+                ticket.getIdTicket(),
+                idUsuarioReporta,
+                nombreUsuarioReporta,
+                idAmbiente,
+                nombreAmbiente,
+                idEquipo,
+                nombreEquipo,
+                ticket.getTipoIncidencia(),
+                ticket.getDescripcion(),
+                ticket.getEstadoTicket(),
+                ticket.getFechaReporte(),
+                ticket.getRespuestaEncargado(),
+                ticket.getFechaResolucion()
         );
     }
 }

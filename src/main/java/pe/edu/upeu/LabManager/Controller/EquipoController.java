@@ -52,15 +52,18 @@ public class EquipoController {
 
 
     private EquipoDto.Response mapToResponse(Equipo equipo) {
+        if (equipo == null) return null;
+
+        Integer idAmbiente = (equipo.getAmbiente() != null) ? equipo.getAmbiente().getIdAmbiente() : null;
+        String nombreAmbiente = (equipo.getAmbiente() != null) ? equipo.getAmbiente().getNombre() : null;
+
         return new EquipoDto.Response(
                 equipo.getIdEquipo(),
                 equipo.getCodigoQr(),
                 equipo.getNombre(),
                 equipo.getDescripcion(),
-                new AmbienteDto(
-                        equipo.getAmbiente().getIdAmbiente(),
-                        equipo.getAmbiente().getNombre()
-                ),
+                idAmbiente,
+                nombreAmbiente,
                 equipo.getEstadoFisico(),
                 equipo.getDisponibilidad()
         );
