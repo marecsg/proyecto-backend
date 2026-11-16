@@ -2,7 +2,9 @@ package pe.edu.upeu.LabManager.Services.ServiceImpl;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.Disponibilidad;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoItem;
@@ -11,6 +13,7 @@ import pe.edu.upeu.LabManager.Entity.Enums.EstadoSolicitud;
 import pe.edu.upeu.LabManager.Repository.*;
 import pe.edu.upeu.LabManager.Services.PrestamoService;
 import pe.edu.upeu.LabManager.Services.SolicitudService;
+import pe.edu.upeu.LabManager.Services.UsuarioService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,6 +40,9 @@ public class PrestamoServiceImpl implements PrestamoService {
     @Autowired
     private EquipoRepository equipoRepository;
 
+    @Autowired
+    private UsuarioService usuarioService;
+
     @Override
     public Prestamo listById(Integer id) {
         return prestamoRepository.findById(id)
@@ -55,7 +61,7 @@ public class PrestamoServiceImpl implements PrestamoService {
 
     @Override
     @Transactional
-    public Prestamo crearDesdeSolicitud(Integer idSolicitud, Integer idEncargadoAprobacion, String comentarioAprobacion) {
+    public Prestamo crearDesdeSolicitud(Integer idSolicitud, String comentarioRespuesta) {
         Solicitud solicitud = solicitudService.listById(idSolicitud);
         if (solicitud.getEstadoSolicitud() != EstadoSolicitud.PENDIENTE) {
             throw new RuntimeException("Solo se pueden aprobar solicitudes en estado PENDIENTE.");
@@ -74,15 +80,15 @@ public class PrestamoServiceImpl implements PrestamoService {
             }
         }
 
-        Usuario encargadoAprobacion = usuarioRepository.findById(idEncargadoAprobacion)
-                .orElseThrow(() -> new RuntimeException("Encargado de aprobación no encontrado"));
+        Usuario encargadoAprobacion = usuarioService.verificarEncargado(
+                solicitud.getAmbiente().getIdAmbiente()
+        );
 
-        solicitudService.cambiarEstado(idSolicitud, EstadoSolicitud.APROBADA);
+        solicitudService.cambiarEstado(idSolicitud, EstadoSolicitud.APROBADA, comentarioRespuesta);
 
         Prestamo prestamo = new Prestamo();
         prestamo.setSolicitud(solicitud);
         prestamo.setEncargadoAprobacion(encargadoAprobacion);
-        prestamo.setComentarioAprobacion(comentarioAprobacion);
         prestamo.setEstadoPrestamo(EstadoPrestamo.PENDIENTE);
 
         Prestamo prestamoGuardado = prestamoRepository.save(prestamo);
@@ -104,12 +110,25 @@ public class PrestamoServiceImpl implements PrestamoService {
     @Override
     @Transactional
     public Prestamo cambiarEstado(Integer idPrestamo, EstadoPrestamo nuevoEstado) {
+
         Prestamo prestamo = listById(idPrestamo);
+
+        if (nuevoEstado != EstadoPrestamo.EN_CURSO &&
+                nuevoEstado != EstadoPrestamo.CANCELADO) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Solo se permite iniciar o cancelar un préstamo"
+            );
+        }
 
         if (nuevoEstado == EstadoPrestamo.EN_CURSO) {
             if (prestamo.getEstadoPrestamo() != EstadoPrestamo.PENDIENTE) {
                 throw new RuntimeException("Solo se puede entregar un préstamo pendiente.");
             }
+
+            usuarioService.verificarEncargado(
+                    prestamo.getSolicitud().getAmbiente().getIdAmbiente()
+            );
 
             prestamo.setFechaInicioUso(LocalDateTime.now());
 
@@ -125,7 +144,7 @@ public class PrestamoServiceImpl implements PrestamoService {
             }
 
             if (prestamo.getSolicitud() != null) {
-                solicitudService.cambiarEstado(prestamo.getSolicitud().getIdSolicitud(), EstadoSolicitud.CANCELADA);
+                solicitudService.cambiarEstado(prestamo.getSolicitud().getIdSolicitud(), EstadoSolicitud.CANCELADA, null);
             }
         }
 
@@ -137,18 +156,19 @@ public class PrestamoServiceImpl implements PrestamoService {
     @Transactional
     public Prestamo registrarDevolucion(
             Integer idPrestamo,
-            Integer idEncargadoDevolucion,
             EstadoPrestamo nuevoEstado,
             List<DetallePrestamo> detallesDevolucion
     ) {
         Prestamo prestamo = listById(idPrestamo);
 
+
         if (prestamo.getEstadoPrestamo() != EstadoPrestamo.EN_CURSO) {
             throw new RuntimeException("Solo se puede registrar la devolución de un préstamo en estado EN_CURSO.");
         }
 
-        Usuario encargadoDevolucion = usuarioRepository.findById(idEncargadoDevolucion)
-                .orElseThrow(() -> new RuntimeException("Encargado de devolución no encontrado"));
+        Usuario encargadoDevolucion = usuarioService.verificarEncargado(
+                prestamo.getSolicitud().getAmbiente().getIdAmbiente()
+        );
 
         prestamo.setEstadoPrestamo(nuevoEstado != null ? nuevoEstado : EstadoPrestamo.FINALIZADO);
         prestamo.setEncargadoDevolucion(encargadoDevolucion);
@@ -158,6 +178,14 @@ public class PrestamoServiceImpl implements PrestamoService {
             for (DetallePrestamo itemDto : detallesDevolucion) {
                 DetallePrestamo detalle = detallePrestamoRepository.findById(itemDto.getIdDetalle())
                         .orElseThrow(() -> new RuntimeException("Detalle de préstamo no encontrado con ID: " + itemDto.getIdDetalle()));
+
+                if (!detalle.getPrestamo().getIdPrestamo()
+                        .equals(prestamo.getIdPrestamo())) {
+                    throw new ResponseStatusException(
+                            HttpStatus.FORBIDDEN,
+                            "El equipo no pertenece a este préstamo"
+                    );
+                }
 
                 detalle.setEstadoItem(itemDto.getEstadoItem());
                 detalle.setEstadoFisicoAlDevolver(itemDto.getEstadoFisicoAlDevolver());

@@ -28,9 +28,6 @@ public class Prestamo {
     @Column(name = "fecha_fin_uso")
     private LocalDateTime fechaFinUso;
 
-    @Column(name = "comentario_aprobacion", columnDefinition = "TEXT")
-    private String comentarioAprobacion;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_prestamo", nullable = false)
     private EstadoPrestamo estadoPrestamo;
@@ -45,13 +42,12 @@ public class Prestamo {
     public Prestamo() {
     }
 
-    public Prestamo(Integer idPrestamo, Solicitud solicitud, Usuario encargadoAprobacion, LocalDateTime fechaInicioUso, LocalDateTime fechaFinUso, String comentarioAprobacion, EstadoPrestamo estadoPrestamo, Usuario encargadoDevolucion, List<DetallePrestamo> detalles) {
+    public Prestamo(Integer idPrestamo, Solicitud solicitud, Usuario encargadoAprobacion, LocalDateTime fechaInicioUso, LocalDateTime fechaFinUso, EstadoPrestamo estadoPrestamo, Usuario encargadoDevolucion, List<DetallePrestamo> detalles) {
         this.idPrestamo = idPrestamo;
         this.solicitud = solicitud;
         this.encargadoAprobacion = encargadoAprobacion;
         this.fechaInicioUso = fechaInicioUso;
         this.fechaFinUso = fechaFinUso;
-        this.comentarioAprobacion = comentarioAprobacion;
         this.estadoPrestamo = estadoPrestamo;
         this.encargadoDevolucion = encargadoDevolucion;
         this.detalles = detalles;
@@ -71,10 +67,6 @@ public class Prestamo {
 
     public LocalDateTime getFechaFinUso() { return fechaFinUso; }
     public void setFechaFinUso(LocalDateTime fechaFinUso) { this.fechaFinUso = fechaFinUso; }
-
-    public String getComentarioAprobacion() { return comentarioAprobacion; }
-    public void setComentarioAprobacion(String comentarioAprobacion) { this.comentarioAprobacion = comentarioAprobacion; }
-
     public EstadoPrestamo getEstadoPrestamo() { return estadoPrestamo; }
     public void setEstadoPrestamo(EstadoPrestamo estadoPrestamo) { this.estadoPrestamo = estadoPrestamo; }
 

@@ -92,13 +92,49 @@ public class SolicitudServiceImpl implements SolicitudService {
         return solicitudGuardada;
     }
 
+
     @Override
     @Transactional
-    public Solicitud cambiarEstado(Integer idSolicitud, EstadoSolicitud nuevoEstado) {
+    public Solicitud cambiarEstado(
+            Integer idSolicitud,
+            EstadoSolicitud nuevoEstado,
+            String comentarioRespuesta
+    ) {
         Solicitud solicitud = listById(idSolicitud);
+
+        if (nuevoEstado == null) {
+            throw new IllegalArgumentException("Estado no válido");
+        }
+
+        EstadoSolicitud estadoActual = solicitud.getEstadoSolicitud();
+
+        boolean transicionValida =
+                (estadoActual == EstadoSolicitud.PENDIENTE &&
+                        (nuevoEstado == EstadoSolicitud.APROBADA ||
+                                nuevoEstado == EstadoSolicitud.RECHAZADA ||
+                                nuevoEstado == EstadoSolicitud.CANCELADA))
+                        ||
+                        (estadoActual == EstadoSolicitud.APROBADA &&
+                                nuevoEstado == EstadoSolicitud.CANCELADA);
+
+        if (!transicionValida) {
+            throw new IllegalStateException
+                    ("No se puede cambiar de " + estadoActual + " a " + nuevoEstado);
+        }
+
         solicitud.setEstadoSolicitud(nuevoEstado);
+        solicitud.setFechaRespuesta(LocalDateTime.now());
+
+        solicitud.setComentarioRespuesta(
+                comentarioRespuesta == null ||
+                        comentarioRespuesta.isBlank()
+                        ? null
+                        : comentarioRespuesta.trim()
+        );
+
         return solicitudRepository.save(solicitud);
     }
+
 
     @Override
     public boolean verificarDisponibilidadEquipo(Integer idEquipo, LocalDateTime fechaInicio, LocalDateTime fechaFin) {

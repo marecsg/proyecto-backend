@@ -10,6 +10,7 @@ public record SolicitudDto() {
             Integer idSolicitud,
             Integer idEstudiante,
             String nombreEstudiante,
+            String codigoEstudiante,
             Integer idAmbiente,
             String nombreAmbiente,
             String motivoSolicitud,
@@ -17,6 +18,8 @@ public record SolicitudDto() {
             LocalDateTime fechaFinReserva,
             LocalDateTime fechaSolicitud,
             EstadoSolicitud estadoSolicitud,
+            LocalDateTime fechaRespuesta,
+            String comentarioRespuesta,
             List<DetalleResponse> detalles
     ) {
         public record DetalleResponse(

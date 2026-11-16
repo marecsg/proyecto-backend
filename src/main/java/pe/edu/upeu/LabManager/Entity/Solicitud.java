@@ -38,19 +38,30 @@ public class Solicitud {
     @Column(name = "estado_solicitud", nullable = false)
     private EstadoSolicitud estadoSolicitud;
 
+    @Column(name = "comentario_respuesta", length = 500)
+    private String comentarioRespuesta;
+
+    @Column(name = "fecha_respuesta")
+    private LocalDateTime fechaRespuesta;
+
     @OneToMany(mappedBy = "solicitud", cascade = CascadeType.ALL)
     private List<DetalleSolicitud> detalles;
 
     public Solicitud() {
     }
 
-    public Solicitud(Integer idSolicitud, Usuario estudiante, Ambiente ambiente, String motivoSolicitud, LocalDateTime fechaSolicitud, EstadoSolicitud estadoSolicitud) {
+    public Solicitud(Integer idSolicitud, Usuario estudiante, Ambiente ambiente, String motivoSolicitud, LocalDateTime fechaInicioReserva, LocalDateTime fechaFinReserva, LocalDateTime fechaSolicitud, EstadoSolicitud estadoSolicitud, String comentarioRespuesta, LocalDateTime fechaRespuesta, List<DetalleSolicitud> detalles) {
         this.idSolicitud = idSolicitud;
         this.estudiante = estudiante;
         this.ambiente = ambiente;
         this.motivoSolicitud = motivoSolicitud;
+        this.fechaInicioReserva = fechaInicioReserva;
+        this.fechaFinReserva = fechaFinReserva;
         this.fechaSolicitud = fechaSolicitud;
         this.estadoSolicitud = estadoSolicitud;
+        this.comentarioRespuesta = comentarioRespuesta;
+        this.fechaRespuesta = fechaRespuesta;
+        this.detalles = detalles;
     }
 
     public Integer getIdSolicitud() { return idSolicitud; }
@@ -88,5 +99,21 @@ public class Solicitud {
 
     public void setFechaFinReserva(LocalDateTime fechaFinReserva) {
         this.fechaFinReserva = fechaFinReserva;
+    }
+
+    public String getComentarioRespuesta() {
+        return comentarioRespuesta;
+    }
+
+    public void setComentarioRespuesta(String comentarioRespuesta) {
+        this.comentarioRespuesta = comentarioRespuesta;
+    }
+
+    public LocalDateTime getFechaRespuesta() {
+        return fechaRespuesta;
+    }
+
+    public void setFechaRespuesta(LocalDateTime fechaRespuesta) {
+        this.fechaRespuesta = fechaRespuesta;
     }
 }

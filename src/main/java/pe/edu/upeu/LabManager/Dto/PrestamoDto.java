@@ -21,7 +21,6 @@ public record PrestamoDto() {
             String nombreEncargadoDevolucion,
             LocalDateTime fechaInicioUso,
             LocalDateTime fechaFinUso,
-            String comentarioAprobacion,
             EstadoPrestamo estadoPrestamo,
             List<DetalleResponse> detalles
     ) {
@@ -39,13 +38,11 @@ public record PrestamoDto() {
 
     public record CreateRequest(
             Integer idSolicitud,
-            Integer idEncargadoAprobacion,
-            String comentarioAprobacion
+            String comentarioRespuesta
     ) {}
 
     public record UpdateEstadoRequest(
             EstadoPrestamo estadoPrestamo,
-            Integer idEncargadoDevolucion,
             List<DetalleDevolucionDto> detallesDevolucion
     ) {
         public record DetalleDevolucionDto(

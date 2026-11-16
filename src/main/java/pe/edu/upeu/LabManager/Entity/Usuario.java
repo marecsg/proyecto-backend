@@ -15,7 +15,6 @@ public class Usuario {
     @JoinColumn(name = "id_rol", nullable = false)
     private Rol rol;
 
-    // NUEVA RELACIÓN: Asignación del encargado a un laboratorio (nullable = true porque los estudiantes no tienen)
     @ManyToOne
     @JoinColumn(name = "id_ambiente", nullable = true)
     private Ambiente ambiente;

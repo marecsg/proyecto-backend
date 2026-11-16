@@ -44,8 +44,7 @@ public class PrestamoController {
     public ResponseEntity<PrestamoDto.Response> crearDesdeSolicitud(@RequestBody PrestamoDto.CreateRequest request) {
         Prestamo prestamo = prestamoService.crearDesdeSolicitud(
                 request.idSolicitud(),
-                request.idEncargadoAprobacion(),
-                request.comentarioAprobacion()
+                request.comentarioRespuesta()
         );
         return ResponseEntity.ok(mapToResponse(prestamo));
     }
@@ -74,7 +73,6 @@ public class PrestamoController {
 
         Prestamo prestamoActualizado = prestamoService.registrarDevolucion(
                 id,
-                request.idEncargadoDevolucion(),
                 request.estadoPrestamo(),
                 detallesEntidades
         );
@@ -123,7 +121,6 @@ public class PrestamoController {
                 nombreEncargadoDevolucion,
                 prestamo.getFechaInicioUso(),
                 prestamo.getFechaFinUso(),
-                prestamo.getComentarioAprobacion(),
                 prestamo.getEstadoPrestamo(),
                 detallesDto
         );

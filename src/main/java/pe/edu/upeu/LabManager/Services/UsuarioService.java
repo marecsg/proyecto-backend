@@ -5,4 +5,5 @@ import pe.edu.upeu.LabManager.Entity.Usuario;
 public interface UsuarioService {
     Usuario listById(Integer id);
     Usuario findByCodigoInstitucional(String codigoInstitucional);
+    Usuario verificarEncargado(Integer idAmbiente);
 }
