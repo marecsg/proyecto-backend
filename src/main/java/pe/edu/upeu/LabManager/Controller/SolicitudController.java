@@ -4,10 +4,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import pe.edu.upeu.LabManager.Dto.AmbienteDto;
 import pe.edu.upeu.LabManager.Dto.EquipoDto;
 import pe.edu.upeu.LabManager.Dto.SolicitudDto;
 import pe.edu.upeu.LabManager.Dto.UsuarioDto;
+import pe.edu.upeu.LabManager.Entity.Enums.EstadoSolicitud;
 import pe.edu.upeu.LabManager.Entity.Solicitud;
 import pe.edu.upeu.LabManager.Services.SolicitudService;
 
@@ -63,12 +65,25 @@ public class SolicitudController {
         return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(nuevaSolicitud));
     }
 
+
     @PatchMapping("/{id}/estado")
     public ResponseEntity<SolicitudDto.Response> cambiarEstado(
             @PathVariable Integer id,
             @RequestBody SolicitudDto.UpdateRequest request) {
 
-        Solicitud solicitudActualizada = solicitudService.cambiarEstado(id, request.estadoSolicitud(), request.comentarioRespuesta());
+        if (request.estadoSolicitud() == EstadoSolicitud.APROBADA) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Para aprobar una solicitud utiliza /api/prestamos/aprobar"
+            );
+        }
+
+        Solicitud solicitudActualizada = solicitudService.cambiarEstado(
+                id,
+                request.estadoSolicitud(),
+                request.comentarioRespuesta()
+        );
+
         return ResponseEntity.ok(mapToResponse(solicitudActualizada));
     }
 
