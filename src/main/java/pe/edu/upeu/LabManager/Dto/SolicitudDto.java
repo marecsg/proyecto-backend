@@ -43,7 +43,9 @@ public record SolicitudDto() {
     }
 
     public record UpdateRequest(
-            EstadoSolicitud estadoSolicitud
+            EstadoSolicitud estadoSolicitud,
+            String comentarioRespuesta
+
     ) {}
 
 }

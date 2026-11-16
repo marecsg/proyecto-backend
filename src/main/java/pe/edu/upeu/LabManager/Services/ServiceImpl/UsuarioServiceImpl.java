@@ -67,4 +67,41 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         return usuario;
     }
+
+    @Override
+    public Usuario verificarEstudiante(Integer idEstudiante) {
+        Authentication auth = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Usuario no autenticado"
+            );
+        }
+
+        Usuario usuario = usuarioRepository.findByCorreo(auth.getName())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Usuario no encontrado"
+                ));
+
+        if (usuario.getRol() == null ||
+                usuario.getRol().getNombre() != Roles.ESTUDIANTE) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Solo un estudiante puede realizar esta acción"
+            );
+        }
+
+        if (!usuario.getIdUsuario().equals(idEstudiante)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "No puedes modificar solicitudes de otro estudiante"
+            );
+        }
+
+        return usuario;
+    }
 }

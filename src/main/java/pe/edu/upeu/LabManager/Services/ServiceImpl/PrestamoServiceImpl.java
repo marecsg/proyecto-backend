@@ -107,12 +107,16 @@ public class PrestamoServiceImpl implements PrestamoService {
         return prestamoGuardado;
     }
 
+
     @Override
     @Transactional
-    public Prestamo cambiarEstado(Integer idPrestamo, EstadoPrestamo nuevoEstado) {
-
+    public Prestamo cambiarEstado(
+            Integer idPrestamo,
+            EstadoPrestamo nuevoEstado
+    ) {
         Prestamo prestamo = listById(idPrestamo);
 
+        // Solo se permite iniciar o cancelar préstamos
         if (nuevoEstado != EstadoPrestamo.EN_CURSO &&
                 nuevoEstado != EstadoPrestamo.CANCELADO) {
             throw new ResponseStatusException(
@@ -121,36 +125,50 @@ public class PrestamoServiceImpl implements PrestamoService {
             );
         }
 
-        if (nuevoEstado == EstadoPrestamo.EN_CURSO) {
-            if (prestamo.getEstadoPrestamo() != EstadoPrestamo.PENDIENTE) {
-                throw new RuntimeException("Solo se puede entregar un préstamo pendiente.");
-            }
+        // Solo se pueden modificar préstamos pendientes
+        if (prestamo.getEstadoPrestamo() != EstadoPrestamo.PENDIENTE) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Solo se puede iniciar o cancelar un préstamo pendiente"
+            );
+        }
 
+        // INICIAR PRÉSTAMO
+        if (nuevoEstado == EstadoPrestamo.EN_CURSO) {
+
+            // Verificar al encargado del ambiente
             usuarioService.verificarEncargado(
-                    prestamo.getSolicitud().getAmbiente().getIdAmbiente()
+                    prestamo.getSolicitud()
+                            .getAmbiente()
+                            .getIdAmbiente()
             );
 
+            // Registrar fecha real de inicio
             prestamo.setFechaInicioUso(LocalDateTime.now());
 
-            for (DetallePrestamo det : prestamo.getDetalles()) {
-                Equipo equipo = det.getEquipo();
+            // Marcar todos los equipos como prestados
+            for (DetallePrestamo detalle : prestamo.getDetalles()) {
+                Equipo equipo = detalle.getEquipo();
                 equipo.setDisponibilidad(Disponibilidad.PRESTADO);
                 equipoRepository.save(equipo);
             }
 
+            // CANCELAR PRÉSTAMO
         } else if (nuevoEstado == EstadoPrestamo.CANCELADO) {
-            if (prestamo.getEstadoPrestamo() != EstadoPrestamo.PENDIENTE) {
-                throw new RuntimeException("Solo se puede cancelar un préstamo pendiente.");
-            }
 
-            if (prestamo.getSolicitud() != null) {
-                solicitudService.cambiarEstado(prestamo.getSolicitud().getIdSolicitud(), EstadoSolicitud.CANCELADA, null);
-            }
+            // Verificar al estudiante propietario
+            usuarioService.verificarEstudiante(
+                    prestamo.getSolicitud()
+                            .getEstudiante()
+                            .getIdUsuario()
+            );
         }
 
         prestamo.setEstadoPrestamo(nuevoEstado);
+
         return prestamoRepository.save(prestamo);
     }
+
 
     @Override
     @Transactional
@@ -163,55 +181,135 @@ public class PrestamoServiceImpl implements PrestamoService {
 
 
         if (prestamo.getEstadoPrestamo() != EstadoPrestamo.EN_CURSO) {
-            throw new RuntimeException("Solo se puede registrar la devolución de un préstamo en estado EN_CURSO.");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Solo se puede devolver un préstamo en curso"
+            );
+        }
+
+        if (nuevoEstado != null &&
+                nuevoEstado != EstadoPrestamo.FINALIZADO) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La devolución solo puede finalizar el préstamo"
+            );
         }
 
         Usuario encargadoDevolucion = usuarioService.verificarEncargado(
                 prestamo.getSolicitud().getAmbiente().getIdAmbiente()
         );
 
-        prestamo.setEstadoPrestamo(nuevoEstado != null ? nuevoEstado : EstadoPrestamo.FINALIZADO);
+        if (detallesDevolucion == null ||
+                prestamo.getDetalles() == null ||
+                detallesDevolucion.size() != prestamo.getDetalles().size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Debes registrar todos los equipos del préstamo"
+            );
+        }
+
+        java.util.Set<Integer> idsRecibidos = new java.util.HashSet<>();
+
+        for (DetallePrestamo itemDto : detallesDevolucion) {
+
+            if (itemDto == null || itemDto.getIdDetalle() == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "El ID del detalle es obligatorio"
+                );
+            }
+
+            if (!idsRecibidos.add(itemDto.getIdDetalle())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "No puedes registrar dos veces el mismo equipo"
+                );
+            }
+
+            DetallePrestamo detalle = detallePrestamoRepository
+                    .findById(itemDto.getIdDetalle())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Detalle de préstamo no encontrado"
+                    ));
+
+            if (!detalle.getPrestamo().getIdPrestamo()
+                    .equals(prestamo.getIdPrestamo())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "El equipo no pertenece a este préstamo"
+                );
+            }
+
+            EstadoItem estadoItem = itemDto.getEstadoItem();
+
+            if (estadoItem != EstadoItem.DEVUELTO &&
+                    estadoItem != EstadoItem.NO_DEVUELTO) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Cada equipo debe estar DEVUELTO o NO_DEVUELTO"
+                );
+            }
+
+            // Un equipo devuelto debe tener condición física
+            if (estadoItem == EstadoItem.DEVUELTO &&
+                    itemDto.getEstadoFisicoAlDevolver() == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Indica el estado físico del equipo devuelto"
+                );
+            }
+
+            // Guardar resultado individual
+            detalle.setEstadoItem(estadoItem);
+
+            detalle.setEstadoFisicoAlDevolver(
+                    estadoItem == EstadoItem.DEVUELTO
+                            ? itemDto.getEstadoFisicoAlDevolver()
+                            : null
+            );
+
+            detalle.setComentarioDevolucion(
+                    itemDto.getComentarioDevolucion() == null ||
+                            itemDto.getComentarioDevolucion().isBlank()
+                            ? null
+                            : itemDto.getComentarioDevolucion().trim()
+            );
+
+            detallePrestamoRepository.save(detalle);
+
+            Equipo equipo = detalle.getEquipo();
+
+            if (estadoItem == EstadoItem.NO_DEVUELTO) {
+
+                equipo.setDisponibilidad(
+                        Disponibilidad.NO_DISPONIBLE
+                );
+
+            } else if (
+                    itemDto.getEstadoFisicoAlDevolver()
+                            == pe.edu.upeu.LabManager.Entity.Enums.EstadoFisico.OPERATIVO
+            ) {
+
+                equipo.setDisponibilidad(
+                        Disponibilidad.DISPONIBLE
+                );
+
+            } else {
+
+                equipo.setDisponibilidad(
+                        Disponibilidad.NO_DISPONIBLE
+                );
+            }
+
+            equipoRepository.save(equipo);
+        }
+
+        prestamo.setEstadoPrestamo(EstadoPrestamo.FINALIZADO);
         prestamo.setEncargadoDevolucion(encargadoDevolucion);
         prestamo.setFechaFinUso(LocalDateTime.now());
 
-        if (detallesDevolucion != null) {
-            for (DetallePrestamo itemDto : detallesDevolucion) {
-                DetallePrestamo detalle = detallePrestamoRepository.findById(itemDto.getIdDetalle())
-                        .orElseThrow(() -> new RuntimeException("Detalle de préstamo no encontrado con ID: " + itemDto.getIdDetalle()));
-
-                if (!detalle.getPrestamo().getIdPrestamo()
-                        .equals(prestamo.getIdPrestamo())) {
-                    throw new ResponseStatusException(
-                            HttpStatus.FORBIDDEN,
-                            "El equipo no pertenece a este préstamo"
-                    );
-                }
-
-                detalle.setEstadoItem(itemDto.getEstadoItem());
-                detalle.setEstadoFisicoAlDevolver(itemDto.getEstadoFisicoAlDevolver());
-                detalle.setComentarioDevolucion(itemDto.getComentarioDevolucion());
-                detallePrestamoRepository.save(detalle);
-
-                Equipo equipo = detalle.getEquipo();
-
-                if (itemDto.getEstadoItem() == EstadoItem.DEVUELTO) {
-                    String condicion = itemDto.getEstadoFisicoAlDevolver() != null
-                            ? itemDto.getEstadoFisicoAlDevolver().toString().toUpperCase()
-                            : "OPERATIVO";
-
-                    if (condicion.contains("OPERATIVO")) {
-                        equipo.setDisponibilidad(Disponibilidad.DISPONIBLE);
-                    } else {
-                        equipo.setDisponibilidad(Disponibilidad.NO_DISPONIBLE);
-                    }
-                } else if (itemDto.getEstadoItem() == EstadoItem.NO_DEVUELTO) {
-                    equipo.setDisponibilidad(Disponibilidad.NO_DISPONIBLE);
-                }
-
-                equipoRepository.save(equipo);
-            }
-        }
-
         return prestamoRepository.save(prestamo);
     }
+
 }

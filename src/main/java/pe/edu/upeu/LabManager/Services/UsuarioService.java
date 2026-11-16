@@ -6,4 +6,6 @@ public interface UsuarioService {
     Usuario listById(Integer id);
     Usuario findByCodigoInstitucional(String codigoInstitucional);
     Usuario verificarEncargado(Integer idAmbiente);
+
+    Usuario verificarEstudiante(Integer idEstudiante);
 }

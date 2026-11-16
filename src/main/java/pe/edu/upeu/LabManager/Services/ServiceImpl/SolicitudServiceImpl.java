@@ -7,6 +7,7 @@ import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoSolicitud;
 import pe.edu.upeu.LabManager.Repository.*;
 import pe.edu.upeu.LabManager.Services.SolicitudService;
+import pe.edu.upeu.LabManager.Services.UsuarioService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,6 +27,9 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Autowired
     private EquipoRepository equipoRepository;
+
+    @Autowired
+    private UsuarioService usuarioService;
 
     @Autowired
     private DetalleSolicitudRepository detalleSolicitudRepository;
@@ -93,6 +97,7 @@ public class SolicitudServiceImpl implements SolicitudService {
     }
 
 
+
     @Override
     @Transactional
     public Solicitud cambiarEstado(
@@ -108,23 +113,41 @@ public class SolicitudServiceImpl implements SolicitudService {
 
         EstadoSolicitud estadoActual = solicitud.getEstadoSolicitud();
 
+        // Solo se pueden responder solicitudes pendientes
         boolean transicionValida =
-                (estadoActual == EstadoSolicitud.PENDIENTE &&
+                estadoActual == EstadoSolicitud.PENDIENTE &&
                         (nuevoEstado == EstadoSolicitud.APROBADA ||
                                 nuevoEstado == EstadoSolicitud.RECHAZADA ||
-                                nuevoEstado == EstadoSolicitud.CANCELADA))
-                        ||
-                        (estadoActual == EstadoSolicitud.APROBADA &&
                                 nuevoEstado == EstadoSolicitud.CANCELADA);
 
         if (!transicionValida) {
-            throw new IllegalStateException
-                    ("No se puede cambiar de " + estadoActual + " a " + nuevoEstado);
+            throw new IllegalStateException(
+                    "No se puede cambiar de " +
+                            estadoActual + " a " + nuevoEstado
+            );
         }
 
+        // Aprobar o rechazar: encargado del ambiente
+        if (nuevoEstado == EstadoSolicitud.APROBADA ||
+                nuevoEstado == EstadoSolicitud.RECHAZADA) {
+
+            usuarioService.verificarEncargado(
+                    solicitud.getAmbiente().getIdAmbiente()
+            );
+
+            // Cancelar: estudiante propietario
+        } else if (nuevoEstado == EstadoSolicitud.CANCELADA) {
+
+            usuarioService.verificarEstudiante(
+                    solicitud.getEstudiante().getIdUsuario()
+            );
+        }
+
+        // Guardar la respuesta
         solicitud.setEstadoSolicitud(nuevoEstado);
         solicitud.setFechaRespuesta(LocalDateTime.now());
 
+        // El comentario es opcional
         solicitud.setComentarioRespuesta(
                 comentarioRespuesta == null ||
                         comentarioRespuesta.isBlank()
@@ -134,6 +157,8 @@ public class SolicitudServiceImpl implements SolicitudService {
 
         return solicitudRepository.save(solicitud);
     }
+
+
 
 
     @Override

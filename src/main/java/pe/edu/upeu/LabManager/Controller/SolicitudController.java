@@ -68,7 +68,7 @@ public class SolicitudController {
             @PathVariable Integer id,
             @RequestBody SolicitudDto.UpdateRequest request) {
 
-        Solicitud solicitudActualizada = solicitudService.cambiarEstado(id, request.estadoSolicitud());
+        Solicitud solicitudActualizada = solicitudService.cambiarEstado(id, request.estadoSolicitud(), request.comentarioRespuesta());
         return ResponseEntity.ok(mapToResponse(solicitudActualizada));
     }
 
@@ -92,6 +92,7 @@ public class SolicitudController {
                 solicitud.getIdSolicitud(),
                 idEstudiante,
                 nombreEstudiante,
+                solicitud.getEstudiante().getCodigoInstitucional(),
                 idAmbiente,
                 nombreAmbiente,
                 solicitud.getMotivoSolicitud(),
@@ -99,6 +100,8 @@ public class SolicitudController {
                 solicitud.getFechaFinReserva(),
                 solicitud.getFechaSolicitud(),
                 solicitud.getEstadoSolicitud(),
+                solicitud.getFechaRespuesta(),
+                solicitud.getComentarioRespuesta(),
                 detallesDto
         );
     }
