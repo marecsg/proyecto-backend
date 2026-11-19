@@ -6,11 +6,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import pe.edu.upeu.LabManager.Entity.*;
-import pe.edu.upeu.LabManager.Entity.Enums.Disponibilidad;
-import pe.edu.upeu.LabManager.Entity.Enums.EstadoItem;
-import pe.edu.upeu.LabManager.Entity.Enums.EstadoPrestamo;
-import pe.edu.upeu.LabManager.Entity.Enums.EstadoSolicitud;
+import pe.edu.upeu.LabManager.Entity.Enums.*;
 import pe.edu.upeu.LabManager.Repository.*;
+import pe.edu.upeu.LabManager.Services.HistorialService;
 import pe.edu.upeu.LabManager.Services.PrestamoService;
 import pe.edu.upeu.LabManager.Services.SolicitudService;
 import pe.edu.upeu.LabManager.Services.UsuarioService;
@@ -42,6 +40,9 @@ public class PrestamoServiceImpl implements PrestamoService {
 
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired
+    private HistorialService historialService;
 
     @Override
     public Prestamo listById(Integer id) {
@@ -133,16 +134,19 @@ public class PrestamoServiceImpl implements PrestamoService {
             );
         }
 
+        Usuario usuarioActor;
+        TipoAccion tipoAccion;
+
         // INICIAR PRÉSTAMO
         if (nuevoEstado == EstadoPrestamo.EN_CURSO) {
 
+
             // Verificar al encargado del ambiente
-            usuarioService.verificarEncargado(
-                    prestamo.getSolicitud()
-                            .getAmbiente()
-                            .getIdAmbiente()
+            usuarioActor = usuarioService.verificarEncargado(
+                    prestamo.getSolicitud().getAmbiente().getIdAmbiente()
             );
 
+            tipoAccion = TipoAccion.PRESTAMO_INICIADO;
             // Registrar fecha real de inicio
             prestamo.setFechaInicioUso(LocalDateTime.now());
 
@@ -154,19 +158,41 @@ public class PrestamoServiceImpl implements PrestamoService {
             }
 
             // CANCELAR PRÉSTAMO
-        } else if (nuevoEstado == EstadoPrestamo.CANCELADO) {
+        } else{
 
-            // Verificar al estudiante propietario
-            usuarioService.verificarEstudiante(
-                    prestamo.getSolicitud()
-                            .getEstudiante()
-                            .getIdUsuario()
+            usuarioActor = usuarioService.verificarEstudiante(
+                    prestamo.getSolicitud().getEstudiante().getIdUsuario()
             );
+
+            tipoAccion = TipoAccion.PRESTAMO_CANCELADO;
         }
 
         prestamo.setEstadoPrestamo(nuevoEstado);
 
-        return prestamoRepository.save(prestamo);
+
+        Prestamo prestamoGuardado = prestamoRepository.save(prestamo);
+
+        Historial historial = new Historial();
+
+        historial.setUsuarioActor(usuarioActor);
+        historial.setUsuarioAfectado(
+                prestamo.getSolicitud().getEstudiante()
+        );
+
+        historial.setTipoAccion(tipoAccion);
+        historial.setTipoEntidad("PRESTAMO");
+        historial.setIdEntidad(prestamoGuardado.getIdPrestamo());
+
+        historial.setDescripcion(
+                nuevoEstado == EstadoPrestamo.EN_CURSO
+                        ? "Préstamo iniciado"
+                        : "Préstamo cancelado"
+        );
+
+        historialService.registrarAccion(historial);
+
+        return prestamoGuardado;
+
     }
 
 
@@ -305,11 +331,39 @@ public class PrestamoServiceImpl implements PrestamoService {
             equipoRepository.save(equipo);
         }
 
+
         prestamo.setEstadoPrestamo(EstadoPrestamo.FINALIZADO);
         prestamo.setEncargadoDevolucion(encargadoDevolucion);
         prestamo.setFechaFinUso(LocalDateTime.now());
 
-        return prestamoRepository.save(prestamo);
+        Prestamo prestamoGuardado =
+                prestamoRepository.save(prestamo);
+
+        // Registrar devolución en el historial
+        Historial historial = new Historial();
+
+        historial.setUsuarioActor(encargadoDevolucion);
+
+        historial.setUsuarioAfectado(
+                prestamo.getSolicitud().getEstudiante()
+        );
+
+        historial.setTipoAccion(
+                TipoAccion.DEVOLUCION_REGISTRADA
+        );
+
+        historial.setTipoEntidad("PRESTAMO");
+
+        historial.setIdEntidad(
+                prestamoGuardado.getIdPrestamo()
+        );
+
+        historial.setDescripcion("Devolución registrada");
+
+        historialService.registrarAccion(historial);
+
+        return prestamoGuardado;
+
     }
 
 }

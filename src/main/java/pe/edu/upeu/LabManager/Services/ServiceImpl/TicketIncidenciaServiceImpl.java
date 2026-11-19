@@ -1,18 +1,19 @@
 package pe.edu.upeu.LabManager.Services.ServiceImpl;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import pe.edu.upeu.LabManager.Entity.Ambiente;
+import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoTicket;
+import pe.edu.upeu.LabManager.Entity.Enums.TipoAccion;
 import pe.edu.upeu.LabManager.Entity.Enums.TipoIncidencia;
-import pe.edu.upeu.LabManager.Entity.Equipo;
-import pe.edu.upeu.LabManager.Entity.TicketIncidencia;
-import pe.edu.upeu.LabManager.Entity.Usuario;
 import pe.edu.upeu.LabManager.Repository.AmbienteRepository;
 import pe.edu.upeu.LabManager.Repository.EquipoRepository;
 import pe.edu.upeu.LabManager.Repository.TicketIncidenciaRepository;
 import pe.edu.upeu.LabManager.Repository.UsuarioRepository;
+import pe.edu.upeu.LabManager.Services.HistorialService;
 import pe.edu.upeu.LabManager.Services.TicketIncidenciaService;
+import pe.edu.upeu.LabManager.Services.UsuarioService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,10 +33,21 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
     @Autowired
     private AmbienteRepository ambienteRepository;
 
+    @Autowired
+    private HistorialService historialService;
+
+    @Autowired
+    private UsuarioService usuarioService;
+
     @Override
     public TicketIncidencia listById(Integer id) {
         return ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket no encontrado con ID: " + id));
+    }
+
+    @Override
+    public List<TicketIncidencia> listByEstudiante(Integer idEstudiante) {
+        return ticketRepository.findByUsuarioReporta_IdUsuario(idEstudiante);
     }
 
     @Override
@@ -65,12 +77,35 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
         ticket.setEstadoTicket(EstadoTicket.PENDIENTE);
         ticket.setFechaReporte(LocalDateTime.now());
 
-        return ticketRepository.save(ticket);
+        TicketIncidencia ticketGuardado =
+                ticketRepository.save(ticket);
+
+        Historial historial = new Historial();
+
+        historial.setUsuarioActor(usuario);
+        historial.setUsuarioAfectado(usuario);
+
+        historial.setTipoAccion(
+                TipoAccion.INCIDENCIA_REPORTADA
+        );
+
+        historial.setTipoEntidad("INCIDENCIA");
+        historial.setIdEntidad(ticketGuardado.getIdTicket());
+        historial.setDescripcion("Incidencia reportada");
+
+        historialService.registrarAccion(historial);
+
+        return ticketGuardado;
     }
 
     @Override
+    @Transactional
     public TicketIncidencia updateResolucion(Integer id, EstadoTicket estado, String respuestaEncargado) {
         TicketIncidencia ticket = listById(id);
+
+        Usuario encargado = usuarioService.verificarEncargado(
+                ticket.getAmbiente().getIdAmbiente()
+        );
 
         ticket.setEstadoTicket(estado);
         ticket.setRespuestaEncargado(respuestaEncargado);
@@ -79,6 +114,23 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
             ticket.setFechaResolucion(LocalDateTime.now());
         }
 
-        return ticketRepository.save(ticket);
+        TicketIncidencia ticketGuardado = ticketRepository.save(ticket);
+
+        Historial historial = new Historial();
+
+        historial.setUsuarioActor(encargado);
+        historial.setUsuarioAfectado(ticket.getUsuarioReporta());
+        historial.setTipoAccion(
+                estado == EstadoTicket.EN_PROCESO
+                        ? TipoAccion.INCIDENCIA_EN_PROCESO
+                        : TipoAccion.INCIDENCIA_RESUELTA
+        );
+        historial.setTipoEntidad("INCIDENCIA");
+        historial.setIdEntidad(ticketGuardado.getIdTicket());
+        historial.setDescripcion("Incidencia " + estado.name().toLowerCase());
+
+        historialService.registrarAccion(historial);
+
+        return ticketGuardado;
     }
 }

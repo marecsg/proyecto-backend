@@ -5,7 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoSolicitud;
+import pe.edu.upeu.LabManager.Entity.Enums.TipoAccion;
 import pe.edu.upeu.LabManager.Repository.*;
+import pe.edu.upeu.LabManager.Services.HistorialService;
 import pe.edu.upeu.LabManager.Services.SolicitudService;
 import pe.edu.upeu.LabManager.Services.UsuarioService;
 
@@ -30,6 +32,9 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired
+    private HistorialService historialService;
 
     @Autowired
     private DetalleSolicitudRepository detalleSolicitudRepository;
@@ -93,6 +98,18 @@ public class SolicitudServiceImpl implements SolicitudService {
         }
 
         solicitudGuardada.setDetalles(detalles);
+
+        Historial historial = new Historial();
+
+        historial.setUsuarioActor(estudiante);
+        historial.setUsuarioAfectado(estudiante);
+        historial.setTipoAccion(TipoAccion.SOLICITUD_CREADA);
+        historial.setTipoEntidad("SOLICITUD");
+        historial.setIdEntidad(solicitudGuardada.getIdSolicitud());
+        historial.setDescripcion("Solicitud enviada");
+
+        historialService.registrarAccion(historial);
+
         return solicitudGuardada;
     }
 
@@ -127,20 +144,28 @@ public class SolicitudServiceImpl implements SolicitudService {
             );
         }
 
-        // Aprobar o rechazar: encargado del ambiente
+        Usuario usuarioActor;
+        TipoAccion tipoAccion;
+
+        // Aprobar o rechazar: encargado
         if (nuevoEstado == EstadoSolicitud.APROBADA ||
                 nuevoEstado == EstadoSolicitud.RECHAZADA) {
 
-            usuarioService.verificarEncargado(
+            usuarioActor = usuarioService.verificarEncargado(
                     solicitud.getAmbiente().getIdAmbiente()
             );
 
-            // Cancelar: estudiante propietario
-        } else if (nuevoEstado == EstadoSolicitud.CANCELADA) {
+            tipoAccion = nuevoEstado == EstadoSolicitud.APROBADA
+                    ? TipoAccion.SOLICITUD_APROBADA
+                    : TipoAccion.SOLICITUD_RECHAZADA;
 
-            usuarioService.verificarEstudiante(
+             // Cancelar: estudiante propietario
+        } else {
+            usuarioActor = usuarioService.verificarEstudiante(
                     solicitud.getEstudiante().getIdUsuario()
             );
+
+            tipoAccion = TipoAccion.SOLICITUD_CANCELADA;
         }
 
         // Guardar la respuesta
@@ -155,7 +180,29 @@ public class SolicitudServiceImpl implements SolicitudService {
                         : comentarioRespuesta.trim()
         );
 
-        return solicitudRepository.save(solicitud);
+        Solicitud solicitudGuardada = solicitudRepository.save(solicitud);
+
+        Historial historial = new Historial();
+
+        historial.setUsuarioActor(usuarioActor);
+        historial.setUsuarioAfectado(
+                solicitud.getEstudiante()
+        );
+
+        historial.setTipoAccion(tipoAccion);
+        historial.setTipoEntidad("SOLICITUD");
+        historial.setIdEntidad(
+                solicitudGuardada.getIdSolicitud()
+        );
+
+        historial.setDescripcion(
+                "Solicitud " + nuevoEstado.name().toLowerCase()
+        );
+
+        historialService.registrarAccion(historial);
+
+        return solicitudGuardada;
+
     }
 
 

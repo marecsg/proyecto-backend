@@ -33,6 +33,14 @@ public class TicketIncidenciasController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/estudiante/{idEstudiante}")
+    public ResponseEntity<List<TicketIncidenciaDto.Response>> listByEstudiante(@PathVariable Integer idEstudiante) {
+        List<TicketIncidenciaDto.Response> response = ticketService.listByEstudiante(idEstudiante).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
 
     @PostMapping
     public ResponseEntity<TicketIncidenciaDto.Response> create(@RequestBody TicketIncidenciaDto.CreateRequest request) {
