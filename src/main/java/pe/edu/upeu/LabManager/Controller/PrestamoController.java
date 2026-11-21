@@ -96,7 +96,7 @@ public class PrestamoController {
 
         Integer idSolicitud = prestamo.getSolicitud().getIdSolicitud();
         String nombreEstudiante = prestamo.getSolicitud().getEstudiante().getNombres() + " " + prestamo.getSolicitud().getEstudiante().getApellidos();
-        String codigoEstudiante = prestamo.getSolicitud().getEstudiante().getCodigoInstitucional(); // <--- Aquí sacamos el código
+        String codigoEstudiante = prestamo.getSolicitud().getEstudiante().getCodigoInstitucional();
         String nombreAmbiente = prestamo.getSolicitud().getAmbiente().getNombre();
 
         Integer idEncargadoAprobacion = prestamo.getEncargadoAprobacion().getIdUsuario();
@@ -111,6 +111,7 @@ public class PrestamoController {
 
         return new PrestamoDto.Response(
                 prestamo.getIdPrestamo(),
+                prestamo.getCodigoCorrelativo(),
                 idSolicitud,
                 nombreEstudiante,
                 codigoEstudiante,

@@ -1,6 +1,7 @@
 package pe.edu.upeu.LabManager.Services.ServiceImpl;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -8,10 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.*;
 import pe.edu.upeu.LabManager.Repository.*;
-import pe.edu.upeu.LabManager.Services.HistorialService;
-import pe.edu.upeu.LabManager.Services.PrestamoService;
-import pe.edu.upeu.LabManager.Services.SolicitudService;
-import pe.edu.upeu.LabManager.Services.UsuarioService;
+import pe.edu.upeu.LabManager.Services.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -44,6 +42,9 @@ public class PrestamoServiceImpl implements PrestamoService {
     @Autowired
     private HistorialService historialService;
 
+    @Autowired
+    private CorrelativoService correlativoService;
+
     @Override
     public Prestamo listById(Integer id) {
         return prestamoRepository.findById(id)
@@ -52,20 +53,40 @@ public class PrestamoServiceImpl implements PrestamoService {
 
     @Override
     public List<Prestamo> listByEstudiante(Integer idEstudiante) {
+        usuarioService.verificarEstudiante(idEstudiante);
         return prestamoRepository.findBySolicitud_Estudiante_IdUsuario(idEstudiante);
     }
 
     @Override
     public List<Prestamo> listByAmbiente(Integer idAmbiente) {
+        usuarioService.verificarEncargado(idAmbiente);
         return prestamoRepository.findBySolicitud_Ambiente_IdAmbiente(idAmbiente);
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Prestamo crearDesdeSolicitud(Integer idSolicitud, String comentarioRespuesta) {
-        Solicitud solicitud = solicitudService.listById(idSolicitud);
+
+        Solicitud solicitud = solicitudRepository.bloquearPorId(idSolicitud)
+                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+        ;
+
         if (solicitud.getEstadoSolicitud() != EstadoSolicitud.PENDIENTE) {
-            throw new RuntimeException("Solo se pueden aprobar solicitudes en estado PENDIENTE.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud ya fue procesada");
+        }
+
+        List<Integer> idsEquipos = solicitud.getDetalles().stream()
+                .map(det -> det.getEquipo().getIdEquipo())
+                .distinct()
+                .sorted()
+                .toList();
+
+        for (Integer idEquipo : idsEquipos) {
+            equipoRepository.bloquearPorId(idEquipo)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Equipo no encontrado"
+                    ));
         }
 
         for (DetalleSolicitud detSolicitud : solicitud.getDetalles()) {
@@ -76,8 +97,9 @@ public class PrestamoServiceImpl implements PrestamoService {
             );
 
             if (conflicto) {
-                throw new RuntimeException("El equipo " + detSolicitud.getEquipo().getNombre() +
-                        " presenta un conflicto de horario para la reserva seleccionada.");
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "El equipo " + detSolicitud.getEquipo().getNombre() + " ya está reservado en ese horario"
+                );
             }
         }
 
@@ -88,6 +110,7 @@ public class PrestamoServiceImpl implements PrestamoService {
         solicitudService.cambiarEstado(idSolicitud, EstadoSolicitud.APROBADA, comentarioRespuesta);
 
         Prestamo prestamo = new Prestamo();
+        prestamo.setCodigoCorrelativo(correlativoService.generar("PRE"));
         prestamo.setSolicitud(solicitud);
         prestamo.setEncargadoAprobacion(encargadoAprobacion);
         prestamo.setEstadoPrestamo(EstadoPrestamo.PENDIENTE);

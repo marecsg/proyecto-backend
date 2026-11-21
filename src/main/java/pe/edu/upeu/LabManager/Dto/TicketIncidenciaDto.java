@@ -10,6 +10,7 @@ public record TicketIncidenciaDto() {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Response(
             Integer idTicket,
+            String codigoCorrelativo,
             Integer idUsuarioReporta,
             String nombreUsuarioReporta,
             Integer idAmbiente,

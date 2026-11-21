@@ -69,6 +69,39 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
+    public Usuario guardarFcmToken(String token) {
+        if (token == null || token.isBlank() || token.length() > 2048) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Token FCM inválido"
+            );
+        }
+
+        Authentication auth = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()
+                || "anonymousUser".equals(auth.getName())) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Usuario no autenticado"
+            );
+        }
+
+        Usuario usuario = usuarioRepository
+                .findByCorreo(auth.getName())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Usuario no encontrado"
+                ));
+
+        usuario.setFcmToken(token.trim());
+
+        return usuarioRepository.save(usuario);
+    }
+
+    @Override
     public Usuario verificarEstudiante(Integer idEstudiante) {
         Authentication auth = SecurityContextHolder
                 .getContext()

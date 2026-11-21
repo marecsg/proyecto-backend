@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pe.edu.upeu.LabManager.Dto.AmbienteDto;
+import pe.edu.upeu.LabManager.Dto.FcmTokenDto;
 import pe.edu.upeu.LabManager.Dto.UsuarioDto;
 import pe.edu.upeu.LabManager.Entity.Usuario;
 import pe.edu.upeu.LabManager.Services.UsuarioService;
@@ -25,6 +26,15 @@ public class UsuarioController {
     @GetMapping("/codigo/{codigo}")
     public ResponseEntity<UsuarioDto.Response> findByCodigo(@PathVariable String codigo) {
         return ResponseEntity.ok(mapToResponse(usuarioService.findByCodigoInstitucional(codigo)));
+    }
+
+    @PostMapping("/fcm-token")
+    public ResponseEntity<Void> guardarFcmToken(
+            @RequestBody FcmTokenDto request
+    ) {
+        usuarioService.guardarFcmToken(request.token());
+
+        return ResponseEntity.noContent().build();
     }
 
     private UsuarioDto.Response mapToResponse(Usuario usuario) {

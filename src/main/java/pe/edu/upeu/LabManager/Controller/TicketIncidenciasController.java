@@ -89,6 +89,7 @@ public class TicketIncidenciasController {
 
         return new TicketIncidenciaDto.Response(
                 ticket.getIdTicket(),
+                ticket.getCodigoCorrelativo(),
                 idUsuarioReporta,
                 nombreUsuarioReporta,
                 idAmbiente,

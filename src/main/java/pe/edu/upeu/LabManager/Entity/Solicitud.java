@@ -14,6 +14,9 @@ public class Solicitud {
     @Column(name = "id_solicitud")
     private Integer idSolicitud;
 
+    @Column(name = "codigo_correlativo", unique = true, length = 20)
+    private String codigoCorrelativo;
+
     @ManyToOne
     @JoinColumn(name = "id_estudiante", nullable = false)
     private Usuario estudiante;
@@ -46,6 +49,9 @@ public class Solicitud {
 
     @OneToMany(mappedBy = "solicitud", cascade = CascadeType.ALL)
     private List<DetalleSolicitud> detalles;
+
+    @Column(name = "acepto_terminos")
+    private Boolean aceptoTerminos;
 
     public Solicitud() {
     }
@@ -115,5 +121,21 @@ public class Solicitud {
 
     public void setFechaRespuesta(LocalDateTime fechaRespuesta) {
         this.fechaRespuesta = fechaRespuesta;
+    }
+
+    public String getCodigoCorrelativo() {
+        return codigoCorrelativo;
+    }
+
+    public void setCodigoCorrelativo(String codigoCorrelativo) {
+        this.codigoCorrelativo = codigoCorrelativo;
+    }
+
+    public Boolean getAceptoTerminos() {
+        return aceptoTerminos;
+    }
+
+    public void setAceptoTerminos(Boolean aceptoTerminos) {
+        this.aceptoTerminos = aceptoTerminos;
     }
 }

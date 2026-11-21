@@ -59,7 +59,8 @@ public class SolicitudController {
                 request.motivoSolicitud(),
                 request.fechaInicioReserva(),
                 request.fechaFinReserva(),
-                idsEquipos
+                idsEquipos,
+                request.aceptoTerminos()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(nuevaSolicitud));
@@ -105,6 +106,7 @@ public class SolicitudController {
 
         return new SolicitudDto.Response(
                 solicitud.getIdSolicitud(),
+                solicitud.getCodigoCorrelativo(),
                 idEstudiante,
                 nombreEstudiante,
                 solicitud.getEstudiante().getCodigoInstitucional(),

@@ -1,12 +1,17 @@
 package pe.edu.upeu.LabManager.Services.ServiceImpl;
 
-import jakarta.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoSolicitud;
 import pe.edu.upeu.LabManager.Entity.Enums.TipoAccion;
 import pe.edu.upeu.LabManager.Repository.*;
+import pe.edu.upeu.LabManager.Services.CorrelativoService;
 import pe.edu.upeu.LabManager.Services.HistorialService;
 import pe.edu.upeu.LabManager.Services.SolicitudService;
 import pe.edu.upeu.LabManager.Services.UsuarioService;
@@ -37,6 +42,9 @@ public class SolicitudServiceImpl implements SolicitudService {
     private HistorialService historialService;
 
     @Autowired
+    private CorrelativoService correlativoService;
+
+    @Autowired
     private DetalleSolicitudRepository detalleSolicitudRepository;
 
     @Override
@@ -47,22 +55,28 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Override
     public List<Solicitud> listByEstudiante(Integer idEstudiante) {
+        usuarioService.verificarEstudiante(idEstudiante);
         return solicitudRepository.findByEstudiante_IdUsuario(idEstudiante);
     }
 
     @Override
     public List<Solicitud> listByAmbiente(Integer idAmbiente) {
+        usuarioService.verificarEncargado(idAmbiente);
         return solicitudRepository.findByAmbiente_IdAmbiente(idAmbiente);
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Solicitud create(Integer idEstudiante, Integer idAmbiente, String motivoSolicitud,
                             LocalDateTime fechaInicioReserva, LocalDateTime fechaFinReserva,
-                            List<Integer> idsEquipos) {
+                            List<Integer> idsEquipos, Boolean aceptoTerminos) {
 
-        Usuario estudiante = usuarioRepository.findById(idEstudiante)
-                .orElseThrow(() -> new RuntimeException("Estudiante no encontrado"));
+        if (!Boolean.TRUE.equals(aceptoTerminos)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes aceptar los términos y condiciones");
+        }
+
+
+        Usuario estudiante = usuarioService.verificarEstudiante(idEstudiante);
 
         Ambiente ambiente = ambienteRepository.findById(idAmbiente)
                 .orElseThrow(() -> new RuntimeException("Ambiente no encontrado"));
@@ -77,6 +91,7 @@ public class SolicitudServiceImpl implements SolicitudService {
         }
 
         Solicitud solicitud = new Solicitud();
+        solicitud.setCodigoCorrelativo(correlativoService.generar("SOL"));
         solicitud.setEstudiante(estudiante);
         solicitud.setAmbiente(ambiente);
         solicitud.setMotivoSolicitud(motivoSolicitud);
@@ -84,6 +99,7 @@ public class SolicitudServiceImpl implements SolicitudService {
         solicitud.setFechaFinReserva(fechaFinReserva);
         solicitud.setFechaSolicitud(LocalDateTime.now());
         solicitud.setEstadoSolicitud(EstadoSolicitud.PENDIENTE);
+        solicitud.setAceptoTerminos(true);
 
         Solicitud solicitudGuardada = solicitudRepository.save(solicitud);
 

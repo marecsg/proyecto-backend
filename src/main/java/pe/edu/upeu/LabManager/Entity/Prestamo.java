@@ -14,6 +14,9 @@ public class Prestamo {
     @Column(name = "id_prestamo")
     private Integer idPrestamo;
 
+    @Column(name = "codigo_correlativo", unique = true, length = 20)
+    private String codigoCorrelativo;
+
     @ManyToOne
     @JoinColumn(name = "id_solicitud", nullable = false)
     private Solicitud solicitud;
@@ -84,5 +87,13 @@ public class Prestamo {
 
     public void setDetalles(List<DetallePrestamo> detalles) {
         this.detalles = detalles;
+    }
+
+    public String getCodigoCorrelativo() {
+        return codigoCorrelativo;
+    }
+
+    public void setCodigoCorrelativo(String codigoCorrelativo) {
+        this.codigoCorrelativo = codigoCorrelativo;
     }
 }

@@ -11,6 +11,7 @@ public record PrestamoDto() {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Response(
             Integer idPrestamo,
+            String codigoCorrelativo,
             Integer idSolicitud,
             String nombreEstudiante,
             String codigoEstudiante,

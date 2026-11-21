@@ -8,6 +8,7 @@ public record SolicitudDto() {
 
     public record Response(
             Integer idSolicitud,
+            String codigoCorrelativo,
             Integer idEstudiante,
             String nombreEstudiante,
             String codigoEstudiante,
@@ -21,6 +22,7 @@ public record SolicitudDto() {
             LocalDateTime fechaRespuesta,
             String comentarioRespuesta,
             List<DetalleResponse> detalles
+
     ) {
         public record DetalleResponse(
                 Integer idEquipo,        // Aplanado
@@ -35,7 +37,8 @@ public record SolicitudDto() {
             String motivoSolicitud,
             LocalDateTime fechaInicioReserva,
             LocalDateTime fechaFinReserva,
-            List<ItemRequest> equipos
+            List<ItemRequest> equipos,
+            Boolean aceptoTerminos
     ) {
         public record ItemRequest(
                 Integer idEquipo

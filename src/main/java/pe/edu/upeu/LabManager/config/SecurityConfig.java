@@ -1,8 +1,9 @@
-package pe.edu.upeu.LabManager.Security;
+package pe.edu.upeu.LabManager.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -10,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import pe.edu.upeu.LabManager.Security.JwtAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -29,7 +31,19 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Login libre
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll() // Login libre
+
+                                .requestMatchers(HttpMethod.POST, "/api/prestamos/aprobar").hasRole("ENCARGADO")
+
+                                // Registrar devoluciones
+                                .requestMatchers(HttpMethod.PATCH, "/api/prestamos/*/devolucion").hasRole("ENCARGADO")
+
+                                // Responder incidencias
+                                .requestMatchers(HttpMethod.PUT, "/api/incidencias/*/resolucion").hasRole("ENCARGADO")
+
+                                // Crear solicitudes e incidencias
+                                .requestMatchers(HttpMethod.POST, "/api/solicitudes", "/api/incidencias").hasRole("ESTUDIANTE")
+
                         .anyRequest().authenticated() // El resto protegido
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

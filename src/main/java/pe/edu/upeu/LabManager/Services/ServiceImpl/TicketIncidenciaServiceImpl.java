@@ -1,8 +1,10 @@
 package pe.edu.upeu.LabManager.Services.ServiceImpl;
 
-import jakarta.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoTicket;
 import pe.edu.upeu.LabManager.Entity.Enums.TipoAccion;
@@ -11,6 +13,7 @@ import pe.edu.upeu.LabManager.Repository.AmbienteRepository;
 import pe.edu.upeu.LabManager.Repository.EquipoRepository;
 import pe.edu.upeu.LabManager.Repository.TicketIncidenciaRepository;
 import pe.edu.upeu.LabManager.Repository.UsuarioRepository;
+import pe.edu.upeu.LabManager.Services.CorrelativoService;
 import pe.edu.upeu.LabManager.Services.HistorialService;
 import pe.edu.upeu.LabManager.Services.TicketIncidenciaService;
 import pe.edu.upeu.LabManager.Services.UsuarioService;
@@ -39,6 +42,9 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
     @Autowired
     private UsuarioService usuarioService;
 
+    @Autowired
+    private CorrelativoService correlativoService;
+
     @Override
     public TicketIncidencia listById(Integer id) {
         return ticketRepository.findById(id)
@@ -47,18 +53,20 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
 
     @Override
     public List<TicketIncidencia> listByEstudiante(Integer idEstudiante) {
+        usuarioService.verificarEstudiante(idEstudiante);
         return ticketRepository.findByUsuarioReporta_IdUsuario(idEstudiante);
     }
 
     @Override
     public List<TicketIncidencia> listByAmbiente(Integer idAmbiente) {
+        usuarioService.verificarEstudiante(idAmbiente);
         return ticketRepository.findByAmbiente_IdAmbiente(idAmbiente);
     }
 
     @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public TicketIncidencia create(Integer idUsuario, Integer idAmbiente, Integer idEquipo, TipoIncidencia tipo, String descripcion) {
-        Usuario usuario = usuarioRepository.findById(idUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        Usuario usuario = usuarioService.verificarEstudiante(idUsuario);
 
         Ambiente ambiente = ambienteRepository.findById(idAmbiente)
                 .orElseThrow(() -> new RuntimeException("Ambiente no encontrado"));
@@ -69,6 +77,7 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
         }
 
         TicketIncidencia ticket = new TicketIncidencia();
+        ticket.setCodigoCorrelativo(correlativoService.generar("INC"));
         ticket.setUsuarioReporta(usuario);
         ticket.setAmbiente(ambiente);
         ticket.setEquipo(equipo);
@@ -99,7 +108,7 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public TicketIncidencia updateResolucion(Integer id, EstadoTicket estado, String respuestaEncargado) {
         TicketIncidencia ticket = listById(id);
 

@@ -15,6 +15,9 @@ public class TicketIncidencia {
     @Column(name = "id_ticket")
     private Integer idTicket;
 
+    @Column(name = "codigo_correlativo", unique = true, length = 20)
+    private String codigoCorrelativo;
+
     @ManyToOne
     @JoinColumn(name = "id_usuario_reporta", nullable = false)
     private Usuario usuarioReporta;
@@ -142,4 +145,8 @@ public class TicketIncidencia {
     public void setFechaResolucion(LocalDateTime fechaResolucion) {
         this.fechaResolucion = fechaResolucion;
     }
+
+    public String getCodigoCorrelativo() {return codigoCorrelativo;}
+
+    public void setCodigoCorrelativo(String codigoCorrelativo) {this.codigoCorrelativo = codigoCorrelativo;}
 }
