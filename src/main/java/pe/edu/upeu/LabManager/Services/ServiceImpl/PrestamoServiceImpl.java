@@ -187,8 +187,30 @@ public class PrestamoServiceImpl implements PrestamoService {
             prestamo.setFechaInicioUso(LocalDateTime.now());
 
             // Marcar todos los equipos como prestados
-            for (DetallePrestamo detalle : prestamo.getDetalles()) {
-                Equipo equipo = detalle.getEquipo();
+            List<Integer> idsEquipos = prestamo.getDetalles().stream()
+                    .map(detalle -> detalle.getEquipo().getIdEquipo())
+                    .distinct()
+                    .sorted()
+                    .toList();
+
+            for (Integer idEquipo : idsEquipos) {
+
+                Equipo equipo = equipoRepository.bloquearPorId(idEquipo)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Equipo no encontrado"
+                        ));
+
+                if (equipo.getDisponibilidad() != Disponibilidad.DISPONIBLE ||
+                        equipo.getEstadoFisico() != EstadoFisico.OPERATIVO) {
+
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "El equipo " + equipo.getNombre()
+                                    + " no está disponible para el préstamo"
+                    );
+                }
+
                 equipo.setDisponibilidad(Disponibilidad.PRESTADO);
                 equipoRepository.save(equipo);
             }
@@ -261,7 +283,11 @@ public class PrestamoServiceImpl implements PrestamoService {
             EstadoPrestamo nuevoEstado,
             List<DetallePrestamo> detallesDevolucion
     ) {
-        Prestamo prestamo = listById(idPrestamo);
+        Prestamo prestamo = prestamoRepository.bloquearPorId(idPrestamo)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Préstamo no encontrado"
+                ));
 
 
         if (prestamo.getEstadoPrestamo() != EstadoPrestamo.EN_CURSO) {

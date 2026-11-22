@@ -1,6 +1,9 @@
 
 package pe.edu.upeu.LabManager.Fcm;
 
+import com.google.api.core.ApiFutureCallback;
+import com.google.api.core.ApiFutures;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -78,16 +81,30 @@ public class NotificacionService {
                     @Override
                     public void afterCommit() {
                         try {
-                            fcmService.enviarNotificacion(
-                                    token,
-                                    titulo,
-                                    mensaje
+                            ApiFutures.addCallback(
+                                    fcmService.enviarNotificacionAsync(
+                                            token, titulo, mensaje
+                                    ),
+                                    new ApiFutureCallback<String>() {
+
+                                        @Override
+                                        public void onSuccess(String resultado) {
+                                            log.debug("FCM enviado: {}", resultado);
+                                        }
+
+                                        @Override
+                                        public void onFailure(Throwable error) {
+                                            log.warn(
+                                                    "Error FCM: {}",
+                                                    error.getMessage()
+                                            );
+                                        }
+                                    },
+                                    MoreExecutors.directExecutor()
                             );
+
                         } catch (Exception e) {
-                            log.warn(
-                                    "Error enviando notificación FCM: {}",
-                                    e.getMessage()
-                            );
+                            log.warn("Error iniciando FCM: {}", e.getMessage());
                         }
                     }
                 }

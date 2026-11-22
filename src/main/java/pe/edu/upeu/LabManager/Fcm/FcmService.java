@@ -1,5 +1,6 @@
 package pe.edu.upeu.LabManager.Fcm;
 
+import com.google.api.core.ApiFuture;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
@@ -26,6 +27,25 @@ public class FcmService {
 
         return FirebaseMessaging.getInstance(firebaseApp)
                 .send(notificacion);
+    }
+
+    public ApiFuture<String> enviarNotificacionAsync(
+            String token,
+            String titulo,
+            String mensaje
+    ) {
+        Message notificacion = Message.builder()
+                .setToken(token)
+                .setNotification(
+                        Notification.builder()
+                                .setTitle(titulo)
+                                .setBody(mensaje)
+                                .build()
+                )
+                .build();
+
+        return FirebaseMessaging.getInstance(firebaseApp)
+                .sendAsync(notificacion);
     }
 
 }
