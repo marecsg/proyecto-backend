@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoSolicitud;
 import pe.edu.upeu.LabManager.Entity.Enums.TipoAccion;
+import pe.edu.upeu.LabManager.Fcm.NotificacionService;
 import pe.edu.upeu.LabManager.Repository.*;
 import pe.edu.upeu.LabManager.Services.CorrelativoService;
 import pe.edu.upeu.LabManager.Services.HistorialService;
@@ -47,6 +48,9 @@ public class SolicitudServiceImpl implements SolicitudService {
     @Autowired
     private DetalleSolicitudRepository detalleSolicitudRepository;
 
+    @Autowired
+    private NotificacionService notificacionService;
+
     @Override
     public Solicitud listById(Integer id) {
         return solicitudRepository.findById(id)
@@ -75,6 +79,36 @@ public class SolicitudServiceImpl implements SolicitudService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes aceptar los términos y condiciones");
         }
 
+        if (idAmbiente == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Debes seleccionar un laboratorio"
+            );
+        }
+
+        if (motivoSolicitud == null || motivoSolicitud.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Debes indicar el motivo de la solicitud"
+            );
+        }
+
+        if (fechaInicioReserva == null || fechaFinReserva == null ||
+                !fechaInicioReserva.isBefore(fechaFinReserva)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Las fechas de reserva no son válidas"
+            );
+        }
+
+        if (idsEquipos == null || idsEquipos.isEmpty() ||
+                idsEquipos.stream().anyMatch(id -> id == null) ||
+                idsEquipos.stream().distinct().count() != idsEquipos.size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Debes seleccionar equipos válidos y sin repetir"
+            );
+        }
 
         Usuario estudiante = usuarioService.verificarEstudiante(idEstudiante);
 
@@ -126,6 +160,14 @@ public class SolicitudServiceImpl implements SolicitudService {
 
         historialService.registrarAccion(historial);
 
+        notificacionService.notificarEncargados(
+                solicitudGuardada.getAmbiente().getIdAmbiente(),
+                "Nueva solicitud",
+                "Se registró la solicitud "
+                        + solicitudGuardada.getCodigoCorrelativo()
+                        + " en tu laboratorio."
+        );
+
         return solicitudGuardada;
     }
 
@@ -138,7 +180,11 @@ public class SolicitudServiceImpl implements SolicitudService {
             EstadoSolicitud nuevoEstado,
             String comentarioRespuesta
     ) {
-        Solicitud solicitud = listById(idSolicitud);
+        Solicitud solicitud = solicitudRepository.bloquearPorId(idSolicitud)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Solicitud no encontrada"
+                ));
 
         if (nuevoEstado == null) {
             throw new IllegalArgumentException("Estado no válido");
@@ -216,6 +262,25 @@ public class SolicitudServiceImpl implements SolicitudService {
         );
 
         historialService.registrarAccion(historial);
+
+        String codigo = solicitudGuardada.getCodigoCorrelativo();
+
+        if (nuevoEstado == EstadoSolicitud.RECHAZADA) {
+
+            notificacionService.notificarUsuario(
+                    solicitudGuardada.getEstudiante(),
+                    "Solicitud rechazada",
+                    "Tu solicitud " + codigo + " fue rechazada."
+            );
+
+        } else if (nuevoEstado == EstadoSolicitud.CANCELADA) {
+
+            notificacionService.notificarEncargados(
+                    solicitudGuardada.getAmbiente().getIdAmbiente(),
+                    "Solicitud cancelada",
+                    "El estudiante canceló la solicitud " + codigo + "."
+            );
+        }
 
         return solicitudGuardada;
 

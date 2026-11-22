@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.*;
+import pe.edu.upeu.LabManager.Fcm.NotificacionService;
 import pe.edu.upeu.LabManager.Repository.*;
 import pe.edu.upeu.LabManager.Services.*;
 
@@ -44,6 +45,9 @@ public class PrestamoServiceImpl implements PrestamoService {
 
     @Autowired
     private CorrelativoService correlativoService;
+
+    @Autowired
+    private NotificacionService notificacionService;
 
     @Override
     public Prestamo listById(Integer id) {
@@ -128,6 +132,15 @@ public class PrestamoServiceImpl implements PrestamoService {
         }
 
         prestamoGuardado.setDetalles(detallesPrestamo);
+
+        notificacionService.notificarUsuario(
+                solicitud.getEstudiante(),
+                "Solicitud aprobada",
+                "Tu solicitud " + solicitud.getCodigoCorrelativo()
+                        + " fue aprobada. Se generó el préstamo "
+                        + prestamoGuardado.getCodigoCorrelativo() + "."
+        );
+
         return prestamoGuardado;
     }
 
@@ -213,6 +226,28 @@ public class PrestamoServiceImpl implements PrestamoService {
         );
 
         historialService.registrarAccion(historial);
+
+        String codigo = prestamoGuardado.getCodigoCorrelativo();
+
+        if (nuevoEstado == EstadoPrestamo.EN_CURSO) {
+
+            // Avisar al estudiante
+            notificacionService.notificarUsuario(
+                    prestamoGuardado.getSolicitud().getEstudiante(),
+                    "Préstamo iniciado",
+                    "Tu préstamo " + codigo + " ya está en curso."
+            );
+
+        } else if (nuevoEstado == EstadoPrestamo.CANCELADO) {
+
+            // Avisar a los encargados del laboratorio
+            notificacionService.notificarEncargados(
+                    prestamoGuardado.getSolicitud()
+                            .getAmbiente().getIdAmbiente(),
+                    "Préstamo cancelado",
+                    "El estudiante canceló el préstamo " + codigo + "."
+            );
+        }
 
         return prestamoGuardado;
 
@@ -384,6 +419,13 @@ public class PrestamoServiceImpl implements PrestamoService {
         historial.setDescripcion("Devolución registrada");
 
         historialService.registrarAccion(historial);
+
+        notificacionService.notificarUsuario(
+                prestamoGuardado.getSolicitud().getEstudiante(),
+                "Devolución registrada",
+                "Se registró la devolución del préstamo "
+                        + prestamoGuardado.getCodigoCorrelativo() + "."
+        );
 
         return prestamoGuardado;
 

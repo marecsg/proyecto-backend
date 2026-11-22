@@ -2,13 +2,16 @@ package pe.edu.upeu.LabManager.Services.ServiceImpl;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import pe.edu.upeu.LabManager.Entity.*;
 import pe.edu.upeu.LabManager.Entity.Enums.EstadoTicket;
 import pe.edu.upeu.LabManager.Entity.Enums.TipoAccion;
 import pe.edu.upeu.LabManager.Entity.Enums.TipoIncidencia;
+import pe.edu.upeu.LabManager.Fcm.NotificacionService;
 import pe.edu.upeu.LabManager.Repository.AmbienteRepository;
 import pe.edu.upeu.LabManager.Repository.EquipoRepository;
 import pe.edu.upeu.LabManager.Repository.TicketIncidenciaRepository;
@@ -45,6 +48,9 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
     @Autowired
     private CorrelativoService correlativoService;
 
+    @Autowired
+    private NotificacionService notificacionService;
+
     @Override
     public TicketIncidencia listById(Integer id) {
         return ticketRepository.findById(id)
@@ -59,21 +65,51 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
 
     @Override
     public List<TicketIncidencia> listByAmbiente(Integer idAmbiente) {
-        usuarioService.verificarEstudiante(idAmbiente);
+        usuarioService.verificarEncargado(idAmbiente);
         return ticketRepository.findByAmbiente_IdAmbiente(idAmbiente);
     }
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public TicketIncidencia create(Integer idUsuario, Integer idAmbiente, Integer idEquipo, TipoIncidencia tipo, String descripcion) {
+
+        if (tipo == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Debes indicar el tipo de incidencia"
+            );
+        }
+
+        if (descripcion == null || descripcion.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La descripción es obligatoria"
+            );
+        }
+
         Usuario usuario = usuarioService.verificarEstudiante(idUsuario);
 
         Ambiente ambiente = ambienteRepository.findById(idAmbiente)
                 .orElseThrow(() -> new RuntimeException("Ambiente no encontrado"));
 
         Equipo equipo = null;
+
         if (idEquipo != null) {
-            equipo = equipoRepository.findById(idEquipo).orElse(null);
+
+            equipo = equipoRepository.findById(idEquipo)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "El equipo seleccionado no existe"
+                    ));
+
+            if (equipo.getAmbiente() == null ||
+                    !equipo.getAmbiente().getIdAmbiente().equals(idAmbiente)) {
+
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "El equipo no pertenece al laboratorio seleccionado"
+                );
+            }
         }
 
         TicketIncidencia ticket = new TicketIncidencia();
@@ -104,6 +140,13 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
 
         historialService.registrarAccion(historial);
 
+        notificacionService.notificarEncargados(
+                ticketGuardado.getAmbiente().getIdAmbiente(),
+                "Nueva incidencia",
+                "Se reportó la incidencia "
+                        + ticketGuardado.getCodigoCorrelativo()
+        );
+
         return ticketGuardado;
     }
 
@@ -116,7 +159,25 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
                 ticket.getAmbiente().getIdAmbiente()
         );
 
+        EstadoTicket estadoAnterior = ticket.getEstadoTicket();
+
+        boolean transicionValida =
+                (estadoAnterior == EstadoTicket.PENDIENTE &&
+                        estado == EstadoTicket.EN_PROCESO)
+                        ||
+                        (estadoAnterior == EstadoTicket.EN_PROCESO &&
+                                estado == EstadoTicket.RESUELTO);
+
+        if (!transicionValida) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "No se puede cambiar la incidencia de "
+                            + estadoAnterior + " a " + estado
+            );
+        }
+
         ticket.setEstadoTicket(estado);
+
         ticket.setRespuestaEncargado(respuestaEncargado);
 
         if (estado == EstadoTicket.RESUELTO) {
@@ -139,6 +200,30 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
         historial.setDescripcion("Incidencia " + estado.name().toLowerCase());
 
         historialService.registrarAccion(historial);
+
+        if (estadoAnterior != estado) {
+
+            if (estado == EstadoTicket.EN_PROCESO) {
+
+                notificacionService.notificarUsuario(
+                        ticketGuardado.getUsuarioReporta(),
+                        "Incidencia en proceso",
+                        "Tu incidencia "
+                                + ticketGuardado.getCodigoCorrelativo()
+                                + " está siendo atendida."
+                );
+
+            } else if (estado == EstadoTicket.RESUELTO) {
+
+                notificacionService.notificarUsuario(
+                        ticketGuardado.getUsuarioReporta(),
+                        "Incidencia resuelta",
+                        "Tu incidencia "
+                                + ticketGuardado.getCodigoCorrelativo()
+                                + " fue resuelta."
+                );
+            }
+        }
 
         return ticketGuardado;
     }

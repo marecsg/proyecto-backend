@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pe.edu.upeu.LabManager.Entity.Enums.Disponibilidad;
 import pe.edu.upeu.LabManager.Entity.Equipo;
-import pe.edu.upeu.LabManager.Entity.Solicitud;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +16,6 @@ public interface EquipoRepository extends JpaRepository<Equipo, Integer> {
     List<Equipo> findByDisponibilidad(Disponibilidad disponibilidad);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Solicitud s WHERE s.idSolicitud = :id")
-    Optional<Solicitud> bloquearPorId(@Param("id") Integer id);
+    @Query("SELECT e FROM Equipo e WHERE e.idEquipo = :id")
+    Optional<Equipo> bloquearPorId(@Param("id") Integer id);
 }
