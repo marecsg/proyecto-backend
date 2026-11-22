@@ -1,6 +1,6 @@
 package pe.edu.upeu.LabManager.Security;
 
-import com.google.api.client.util.Value;
+import org.springframework.beans.factory.annotation.Value;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
