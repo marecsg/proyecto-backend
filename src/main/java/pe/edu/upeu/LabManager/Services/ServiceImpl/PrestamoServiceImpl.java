@@ -460,4 +460,17 @@ public class PrestamoServiceImpl implements PrestamoService {
 
     }
 
+    @Override
+    public String obtenerNombreEncargadoInicio(Prestamo prestamo) {
+        if (prestamo == null || prestamo.getIdPrestamo() == null) {
+            return null;
+        }
+
+        return historialService.obtenerNombreResponsable(
+                "PRESTAMO",
+                prestamo.getIdPrestamo(),
+                TipoAccion.PRESTAMO_INICIADO
+        );
+    }
+
 }

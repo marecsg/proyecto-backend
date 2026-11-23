@@ -21,6 +21,7 @@ public record SolicitudDto() {
             EstadoSolicitud estadoSolicitud,
             LocalDateTime fechaRespuesta,
             String comentarioRespuesta,
+            String nombreEncargadoRespuesta,
             List<DetalleResponse> detalles
 
     ) {

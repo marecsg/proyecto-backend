@@ -11,7 +11,9 @@ public record HistorialDto(Integer idHistorial,
                            String nombreAfectado,
                            TipoAccion tipoAccion,
                            String tipoEntidad,
+                           String codigoEntidad,
                            Integer idEntidad,
                            String descripcion,
                            LocalDateTime fechaAccion) {
+
 }

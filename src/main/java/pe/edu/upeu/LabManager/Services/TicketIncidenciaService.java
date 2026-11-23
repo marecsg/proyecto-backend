@@ -14,5 +14,7 @@ public interface TicketIncidenciaService {
     TicketIncidencia listById(Integer id);
     List<TicketIncidencia> listByEstudiante(Integer idEstudiante);
     List<TicketIncidencia> listByAmbiente(Integer idAmbiente);
+    String obtenerNombreEncargadoAtencion(TicketIncidencia ticket);
+    String obtenerNombreEncargadoResolucion(TicketIncidencia ticket);
 
 }

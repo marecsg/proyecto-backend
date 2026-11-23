@@ -118,6 +118,7 @@ public class PrestamoController {
                 nombreAmbiente,
                 idEncargadoAprobacion,
                 nombreEncargadoAprobacion,
+                prestamoService.obtenerNombreEncargadoInicio(prestamo),
                 idEncargadoDevolucion,
                 nombreEncargadoDevolucion,
                 prestamo.getFechaInicioUso(),

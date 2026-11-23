@@ -37,6 +37,17 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
+
+    @PostMapping("/fcm-token/desvincular")
+    public ResponseEntity<Void> desvincularFcmToken(
+            @RequestBody FcmTokenDto request
+    ) {
+        usuarioService.desvincularFcmToken(request.token());
+
+        return ResponseEntity.noContent().build();
+    }
+
+
     private UsuarioDto.Response mapToResponse(Usuario usuario) {
         if (usuario == null) return null;
 

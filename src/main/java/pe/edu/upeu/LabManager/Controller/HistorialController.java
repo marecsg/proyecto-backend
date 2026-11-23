@@ -53,6 +53,7 @@ public class HistorialController {
                 afectado.getNombres() + " " + afectado.getApellidos(),
                 historial.getTipoAccion(),
                 historial.getTipoEntidad(),
+                historialService.obtenerCodigoEntidad(historial),
                 historial.getIdEntidad(),
                 historial.getDescripcion(),
                 historial.getFechaAccion()

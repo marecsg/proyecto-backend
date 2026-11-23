@@ -14,5 +14,6 @@ public interface PrestamoService {
     Prestamo crearDesdeSolicitud(Integer idSolicitud, String comentarioRespuesta);
     Prestamo cambiarEstado(Integer idPrestamo, EstadoPrestamo nuevoEstado);
     Prestamo registrarDevolucion(Integer idPrestamo, EstadoPrestamo nuevoEstado, List<DetallePrestamo> detallesDevolucion);
+    String obtenerNombreEncargadoInicio(Prestamo prestamo);
 
 }

@@ -18,6 +18,7 @@ public record PrestamoDto() {
             String nombreAmbiente,
             Integer idEncargadoAprobacion,
             String nombreEncargadoAprobacion,
+            String nombreEncargadoInicio,
             Integer idEncargadoDevolucion,
             String nombreEncargadoDevolucion,
             LocalDateTime fechaInicioUso,

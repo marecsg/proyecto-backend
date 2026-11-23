@@ -9,4 +9,5 @@ public interface UsuarioService {
     Usuario guardarFcmToken(String token);
     Usuario verificarEstudiante(Integer idEstudiante);
     Usuario verificarAcceso(Integer idEstudiante, Integer idAmbiente);
+    Usuario desvincularFcmToken(String token);
 }

@@ -81,6 +81,41 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
     }
 
     @Override
+    public String obtenerNombreEncargadoAtencion(TicketIncidencia ticket) {
+        if (ticket == null || ticket.getIdTicket() == null) {
+            return null;
+        }
+
+        if (ticket.getEstadoTicket() != EstadoTicket.EN_PROCESO
+                && ticket.getEstadoTicket() != EstadoTicket.RESUELTO) {
+            return null;
+        }
+
+        return historialService.obtenerNombreResponsable(
+                "INCIDENCIA",
+                ticket.getIdTicket(),
+                TipoAccion.INCIDENCIA_EN_PROCESO
+        );
+    }
+
+    @Override
+    public String obtenerNombreEncargadoResolucion(TicketIncidencia ticket) {
+        if (ticket == null || ticket.getIdTicket() == null) {
+            return null;
+        }
+
+        if (ticket.getEstadoTicket() != EstadoTicket.RESUELTO) {
+            return null;
+        }
+
+        return historialService.obtenerNombreResponsable(
+                "INCIDENCIA",
+                ticket.getIdTicket(),
+                TipoAccion.INCIDENCIA_RESUELTA
+        );
+    }
+
+    @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public TicketIncidencia create(Integer idUsuario, Integer idAmbiente, Integer idEquipo, TipoIncidencia tipo, String descripcion) {
 

@@ -101,7 +101,9 @@ public class TicketIncidenciasController {
                 ticket.getEstadoTicket(),
                 ticket.getFechaReporte(),
                 ticket.getRespuestaEncargado(),
-                ticket.getFechaResolucion()
+                ticket.getFechaResolucion(),
+                ticketService.obtenerNombreEncargadoAtencion(ticket),
+                ticketService.obtenerNombreEncargadoResolucion(ticket)
         );
     }
 }

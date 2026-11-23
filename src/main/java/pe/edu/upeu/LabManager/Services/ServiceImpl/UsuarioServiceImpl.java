@@ -11,6 +11,8 @@ import pe.edu.upeu.LabManager.Entity.Usuario;
 import pe.edu.upeu.LabManager.Repository.UsuarioRepository;
 import pe.edu.upeu.LabManager.Services.UsuarioService;
 
+import java.util.List;
+
 @Service
 public class UsuarioServiceImpl implements UsuarioService {
 
@@ -113,9 +115,22 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
 
         Usuario usuario = obtenerUsuarioAutenticado();
+        String tokenLimpio = token.trim();
 
-        usuario.setFcmToken(token.trim());
+        // Desvincular el celular de otras cuentas
+        List<Usuario> anteriores =
+                usuarioRepository.findAllByFcmToken(tokenLimpio);
 
+        for (Usuario anterior : anteriores) {
+            if (!anterior.getIdUsuario().equals(usuario.getIdUsuario())) {
+                anterior.setFcmToken(null);
+            }
+        }
+
+        usuarioRepository.saveAll(anteriores);
+
+        // Asociar el celular únicamente a la sesión actual
+        usuario.setFcmToken(tokenLimpio);
         return usuarioRepository.save(usuario);
     }
 
@@ -174,5 +189,26 @@ public class UsuarioServiceImpl implements UsuarioService {
                 HttpStatus.FORBIDDEN,
                 "No tienes permisos para acceder a este registro"
         );
+    }
+
+    @Override
+    public Usuario desvincularFcmToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Token FCM inválido"
+            );
+        }
+
+        Usuario usuario = obtenerUsuarioAutenticado();
+
+        // Solo eliminar si el token pertenece al usuario que está cerrando sesión.
+        if (token.trim().equals(usuario.getFcmToken())) {
+
+            usuario.setFcmToken(null);
+
+            return usuarioRepository.save(usuario);
+        }
+        return usuario;
     }
 }

@@ -1,5 +1,6 @@
 package pe.edu.upeu.LabManager.Services;
 
+import pe.edu.upeu.LabManager.Entity.Enums.TipoAccion;
 import pe.edu.upeu.LabManager.Entity.Historial;
 
 import java.util.List;
@@ -11,5 +12,11 @@ public interface HistorialService {
     List<Historial> getByUsuarioActor(Integer idUsuario);
 
     List<Historial> getByUsuarioAfectado(Integer idUsuario);
+    String obtenerCodigoEntidad(Historial historial);
+    String obtenerNombreResponsable(
+            String tipoEntidad,
+            Integer idEntidad,
+            TipoAccion tipoAccion
+    );
 
 }

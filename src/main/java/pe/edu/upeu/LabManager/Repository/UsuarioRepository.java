@@ -12,4 +12,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
     Optional<Usuario> findByCorreo(String correo);
 
     List<Usuario> findByAmbiente_IdAmbienteAndRol_Nombre(Integer idAmbiente, Roles nombre);
+
+    List<Usuario> findAllByFcmToken(String fcmToken);
 }

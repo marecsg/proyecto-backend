@@ -22,7 +22,9 @@ public record TicketIncidenciaDto() {
             EstadoTicket estadoTicket,
             LocalDateTime fechaReporte,
             String respuestaEncargado,
-            LocalDateTime fechaResolucion
+            LocalDateTime fechaResolucion,
+            String nombreEncargadoAtencion,
+            String nombreEncargadoResolucion
     ) {}
 
     public record CreateRequest(

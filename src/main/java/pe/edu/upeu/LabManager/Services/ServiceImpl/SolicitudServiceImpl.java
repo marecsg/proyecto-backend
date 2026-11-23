@@ -313,4 +313,29 @@ public class SolicitudServiceImpl implements SolicitudService {
     public boolean verificarDisponibilidadEquipo(Integer idEquipo, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         return !solicitudRepository.existeReservaAprobada(idEquipo, fechaInicio, fechaFin);
     }
+
+    @Override
+    public String obtenerNombreEncargadoRespuesta(Solicitud solicitud) {
+        if (solicitud == null || solicitud.getIdSolicitud() == null) {
+            return null;
+        }
+
+        TipoAccion tipoAccion;
+
+        if (solicitud.getEstadoSolicitud() == EstadoSolicitud.APROBADA) {
+            tipoAccion = TipoAccion.SOLICITUD_APROBADA;
+
+        } else if (solicitud.getEstadoSolicitud() == EstadoSolicitud.RECHAZADA) {
+            tipoAccion = TipoAccion.SOLICITUD_RECHAZADA;
+
+        } else {
+            return null;
+        }
+
+        return historialService.obtenerNombreResponsable(
+                "SOLICITUD",
+                solicitud.getIdSolicitud(),
+                tipoAccion
+        );
+    }
 }

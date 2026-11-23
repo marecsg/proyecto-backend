@@ -119,6 +119,7 @@ public class SolicitudController {
                 solicitud.getEstadoSolicitud(),
                 solicitud.getFechaRespuesta(),
                 solicitud.getComentarioRespuesta(),
+                solicitudService.obtenerNombreEncargadoRespuesta(solicitud),
                 detallesDto
         );
     }
