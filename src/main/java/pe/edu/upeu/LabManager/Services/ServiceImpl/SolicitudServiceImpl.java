@@ -28,9 +28,6 @@ public class SolicitudServiceImpl implements SolicitudService {
     private SolicitudRepository solicitudRepository;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
     private AmbienteRepository ambienteRepository;
 
     @Autowired
@@ -51,10 +48,24 @@ public class SolicitudServiceImpl implements SolicitudService {
     @Autowired
     private NotificacionService notificacionService;
 
+    private Solicitud buscarPorId(Integer id) {
+        return solicitudRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Solicitud no encontrada con ID: " + id
+                ));
+    }
+
     @Override
     public Solicitud listById(Integer id) {
-        return solicitudRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada con ID: " + id));
+        Solicitud solicitud = buscarPorId(id);
+
+        usuarioService.verificarAcceso(
+                solicitud.getEstudiante().getIdUsuario(),
+                solicitud.getAmbiente().getIdAmbiente()
+        );
+
+        return solicitud;
     }
 
     @Override
@@ -113,15 +124,29 @@ public class SolicitudServiceImpl implements SolicitudService {
         Usuario estudiante = usuarioService.verificarEstudiante(idEstudiante);
 
         Ambiente ambiente = ambienteRepository.findById(idAmbiente)
-                .orElseThrow(() -> new RuntimeException("Ambiente no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Ambiente no encontrado"
+                ));
+
+        List<Equipo> equiposValidados = new ArrayList<>();
 
         for (Integer idEquipo : idsEquipos) {
-            Equipo equipo = equipoRepository.findById(idEquipo)
-                    .orElseThrow(() -> new RuntimeException("Equipo no encontrado con ID: " + idEquipo));
 
-            if (!equipo.getAmbiente().getIdAmbiente().equals(idAmbiente)) {
-                throw new RuntimeException("El equipo " + equipo.getNombre() + " no pertenece al laboratorio seleccionado.");
+            Equipo equipo = equipoRepository.findById(idEquipo)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "Equipo no encontrado con ID: " + idEquipo)
+                    );
+
+            if (equipo.getAmbiente() == null ||
+                    !equipo.getAmbiente().getIdAmbiente().equals(idAmbiente)) {
+
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "El equipo " + equipo.getNombre() + " no pertenece al laboratorio seleccionado"
+                );
             }
+
+            equiposValidados.add(equipo);
         }
 
         Solicitud solicitud = new Solicitud();
@@ -138,8 +163,9 @@ public class SolicitudServiceImpl implements SolicitudService {
         Solicitud solicitudGuardada = solicitudRepository.save(solicitud);
 
         List<DetalleSolicitud> detalles = new ArrayList<>();
-        for (Integer idEquipo : idsEquipos) {
-            Equipo equipo = equipoRepository.findById(idEquipo).get();
+
+        for (Equipo equipo : equiposValidados) {
+
             DetalleSolicitud detalle = new DetalleSolicitud();
             detalle.setSolicitud(solicitudGuardada);
             detalle.setEquipo(equipo);
@@ -181,13 +207,10 @@ public class SolicitudServiceImpl implements SolicitudService {
             String comentarioRespuesta
     ) {
         Solicitud solicitud = solicitudRepository.bloquearPorId(idSolicitud)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Solicitud no encontrada"
-                ));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
 
         if (nuevoEstado == null) {
-            throw new IllegalArgumentException("Estado no válido");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estado no válido");
         }
 
         EstadoSolicitud estadoActual = solicitud.getEstadoSolicitud();
@@ -200,10 +223,7 @@ public class SolicitudServiceImpl implements SolicitudService {
                                 nuevoEstado == EstadoSolicitud.CANCELADA);
 
         if (!transicionValida) {
-            throw new IllegalStateException(
-                    "No se puede cambiar de " +
-                            estadoActual + " a " + nuevoEstado
-            );
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No se puede cambiar de " + estadoActual + " a " + nuevoEstado);
         }
 
         Usuario usuarioActor;

@@ -29,9 +29,6 @@ public class PrestamoServiceImpl implements PrestamoService {
     private SolicitudRepository solicitudRepository;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
     private DetallePrestamoRepository detallePrestamoRepository;
 
     @Autowired
@@ -49,10 +46,25 @@ public class PrestamoServiceImpl implements PrestamoService {
     @Autowired
     private NotificacionService notificacionService;
 
+    private Prestamo buscarPorId(Integer id) {
+        return prestamoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Préstamo no encontrado con ID: " + id
+                ));
+    }
+
     @Override
     public Prestamo listById(Integer id) {
-        return prestamoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Préstamo no encontrado con ID: " + id));
+
+        Prestamo prestamo = buscarPorId(id);
+
+        usuarioService.verificarAcceso(
+                prestamo.getSolicitud().getEstudiante().getIdUsuario(),
+                prestamo.getSolicitud().getAmbiente().getIdAmbiente()
+        );
+
+        return prestamo;
     }
 
     @Override
@@ -72,8 +84,10 @@ public class PrestamoServiceImpl implements PrestamoService {
     public Prestamo crearDesdeSolicitud(Integer idSolicitud, String comentarioRespuesta) {
 
         Solicitud solicitud = solicitudRepository.bloquearPorId(idSolicitud)
-                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
-        ;
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Solicitud no encontrada con ID: " + idSolicitud
+                ));
 
         if (solicitud.getEstadoSolicitud() != EstadoSolicitud.PENDIENTE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud ya fue procesada");
@@ -151,7 +165,8 @@ public class PrestamoServiceImpl implements PrestamoService {
             Integer idPrestamo,
             EstadoPrestamo nuevoEstado
     ) {
-        Prestamo prestamo = listById(idPrestamo);
+
+        Prestamo prestamo = buscarPorId(idPrestamo);
 
         // Solo se permite iniciar o cancelar préstamos
         if (nuevoEstado != EstadoPrestamo.EN_CURSO &&
@@ -390,27 +405,15 @@ public class PrestamoServiceImpl implements PrestamoService {
 
             Equipo equipo = detalle.getEquipo();
 
-            if (estadoItem == EstadoItem.NO_DEVUELTO) {
+            boolean disponible =
+                    estadoItem == EstadoItem.DEVUELTO &&
+                            itemDto.getEstadoFisicoAlDevolver() == EstadoFisico.OPERATIVO;
 
-                equipo.setDisponibilidad(
-                        Disponibilidad.NO_DISPONIBLE
-                );
-
-            } else if (
-                    itemDto.getEstadoFisicoAlDevolver()
-                            == pe.edu.upeu.LabManager.Entity.Enums.EstadoFisico.OPERATIVO
-            ) {
-
-                equipo.setDisponibilidad(
-                        Disponibilidad.DISPONIBLE
-                );
-
-            } else {
-
-                equipo.setDisponibilidad(
-                        Disponibilidad.NO_DISPONIBLE
-                );
-            }
+            equipo.setDisponibilidad(
+                    disponible
+                            ? Disponibilidad.DISPONIBLE
+                            : Disponibilidad.NO_DISPONIBLE
+            );
 
             equipoRepository.save(equipo);
         }

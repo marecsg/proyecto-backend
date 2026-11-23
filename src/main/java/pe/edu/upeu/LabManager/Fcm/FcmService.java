@@ -15,19 +15,6 @@ public class FcmService {
     @Autowired
     private FirebaseApp firebaseApp;
 
-    public String enviarNotificacion(String token, String titulo, String mensaje)
-            throws FirebaseMessagingException {Message notificacion = Message.builder()
-                .setToken(token)
-                .setNotification(
-                        Notification.builder()
-                                .setTitle(titulo)
-                                .setBody(mensaje)
-                                .build()
-                ).build();
-
-        return FirebaseMessaging.getInstance(firebaseApp)
-                .send(notificacion);
-    }
 
     public ApiFuture<String> enviarNotificacionAsync(
             String token,

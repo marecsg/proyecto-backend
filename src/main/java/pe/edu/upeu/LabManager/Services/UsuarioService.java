@@ -8,4 +8,5 @@ public interface UsuarioService {
     Usuario verificarEncargado(Integer idAmbiente);
     Usuario guardarFcmToken(String token);
     Usuario verificarEstudiante(Integer idEstudiante);
+    Usuario verificarAcceso(Integer idEstudiante, Integer idAmbiente);
 }

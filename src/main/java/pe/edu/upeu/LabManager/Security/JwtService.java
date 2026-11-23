@@ -1,5 +1,6 @@
 package pe.edu.upeu.LabManager.Security;
 
+import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Value;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -40,30 +41,18 @@ public class JwtService {
                 .compact();
     }
 
-    public String extraerCorreo(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
-    }
 
-    public String extraerRol(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("rol", String.class);
-    }
-
-    public boolean validarToken(String token) {
+    public Claims obtenerClaimsValidados(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(getSignInKey()).build().parseClaimsJws(token);
-            return true;
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSignInKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
         } catch (Exception e) {
-            return false;
+            return null;
         }
     }
+
 }

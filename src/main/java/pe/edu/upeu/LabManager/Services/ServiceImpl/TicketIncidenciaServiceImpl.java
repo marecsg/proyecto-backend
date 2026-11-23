@@ -34,9 +34,6 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
     private EquipoRepository equipoRepository;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
     private AmbienteRepository ambienteRepository;
 
     @Autowired
@@ -51,10 +48,24 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
     @Autowired
     private NotificacionService notificacionService;
 
+    private TicketIncidencia buscarPorId(Integer id) {
+        return ticketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Incidencia no encontrada con ID: " + id
+                ));
+    }
+
     @Override
     public TicketIncidencia listById(Integer id) {
-        return ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket no encontrado con ID: " + id));
+        TicketIncidencia ticket = buscarPorId(id);
+
+        usuarioService.verificarAcceso(
+                ticket.getUsuarioReporta().getIdUsuario(),
+                ticket.getAmbiente().getIdAmbiente()
+        );
+
+        return ticket;
     }
 
     @Override
@@ -89,8 +100,12 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
 
         Usuario usuario = usuarioService.verificarEstudiante(idUsuario);
 
+        if (idAmbiente == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar un laboratorio");
+        }
+
         Ambiente ambiente = ambienteRepository.findById(idAmbiente)
-                .orElseThrow(() -> new RuntimeException("Ambiente no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ambiente no encontrado con ID: " + idAmbiente));
 
         Equipo equipo = null;
 
@@ -153,7 +168,8 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public TicketIncidencia updateResolucion(Integer id, EstadoTicket estado, String respuestaEncargado) {
-        TicketIncidencia ticket = listById(id);
+
+        TicketIncidencia ticket = buscarPorId(id);
 
         Usuario encargado = usuarioService.verificarEncargado(
                 ticket.getAmbiente().getIdAmbiente()
@@ -201,28 +217,25 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
 
         historialService.registrarAccion(historial);
 
-        if (estadoAnterior != estado) {
+        if (estado == EstadoTicket.EN_PROCESO) {
 
-            if (estado == EstadoTicket.EN_PROCESO) {
+            notificacionService.notificarUsuario(
+                    ticketGuardado.getUsuarioReporta(),
+                    "Incidencia en proceso",
+                    "Tu incidencia "
+                            + ticketGuardado.getCodigoCorrelativo()
+                            + " está siendo atendida."
+            );
 
-                notificacionService.notificarUsuario(
-                        ticketGuardado.getUsuarioReporta(),
-                        "Incidencia en proceso",
-                        "Tu incidencia "
-                                + ticketGuardado.getCodigoCorrelativo()
-                                + " está siendo atendida."
-                );
+        } else if (estado == EstadoTicket.RESUELTO) {
 
-            } else if (estado == EstadoTicket.RESUELTO) {
-
-                notificacionService.notificarUsuario(
-                        ticketGuardado.getUsuarioReporta(),
-                        "Incidencia resuelta",
-                        "Tu incidencia "
-                                + ticketGuardado.getCodigoCorrelativo()
-                                + " fue resuelta."
-                );
-            }
+            notificacionService.notificarUsuario(
+                    ticketGuardado.getUsuarioReporta(),
+                    "Incidencia resuelta",
+                    "Tu incidencia "
+                            + ticketGuardado.getCodigoCorrelativo()
+                            + " fue resuelta."
+            );
         }
 
         return ticketGuardado;

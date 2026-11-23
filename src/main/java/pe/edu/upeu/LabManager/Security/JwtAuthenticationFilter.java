@@ -1,5 +1,6 @@
 package pe.edu.upeu.LabManager.Security;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,9 +30,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
-            if (jwtService.validarToken(token)) {
-                String correo = jwtService.extraerCorreo(token);
-                String rol = jwtService.extraerRol(token);
+            Claims claims = jwtService.obtenerClaimsValidados(token);
+
+            if (claims != null) {
+                String correo = claims.getSubject();
+                String rol = claims.get("rol", String.class);
 
                 var authorities = rol == null
                         ? java.util.List.<SimpleGrantedAuthority>of()

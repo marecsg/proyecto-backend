@@ -17,37 +17,72 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    @Override
-    public Usuario listById(Integer id) {
-        return usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
-    }
+    private Usuario obtenerUsuarioAutenticado() {
 
-    @Override
-    public Usuario findByCodigoInstitucional(String codigoInstitucional) {
-        return usuarioRepository.findByCodigoInstitucional(codigoInstitucional)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con el código: " + codigoInstitucional));
-    }
-
-    @Override
-    public Usuario verificarEncargado(Integer idAmbiente) {
         Authentication auth = SecurityContextHolder
                 .getContext()
                 .getAuthentication();
 
-        if (auth == null || !auth.isAuthenticated()) {
+        if (auth == null || !auth.isAuthenticated()
+                || "anonymousUser".equals(auth.getName())) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Usuario no autenticado"
             );
         }
 
-        Usuario usuario = usuarioRepository
-                .findByCorreo(auth.getName())
+        return usuarioRepository.findByCorreo(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED,
                         "Usuario no encontrado"
                 ));
+    }
+
+    @Override
+    public Usuario listById(Integer id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Usuario no encontrado con ID: " + id
+                ));
+
+        Usuario autenticado = obtenerUsuarioAutenticado();
+
+        if (!autenticado.getIdUsuario().equals(usuario.getIdUsuario())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "No puedes consultar los datos de otro usuario"
+            );
+        }
+
+        return usuario;
+    }
+
+    @Override
+    public Usuario findByCodigoInstitucional(String codigoInstitucional) {
+        Usuario usuario = usuarioRepository
+                .findByCodigoInstitucional(codigoInstitucional)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Usuario no encontrado con el código: " + codigoInstitucional
+                ));
+
+        Usuario autenticado = obtenerUsuarioAutenticado();
+
+        if (!autenticado.getIdUsuario().equals(usuario.getIdUsuario())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "No puedes consultar los datos de otro usuario"
+            );
+        }
+
+        return usuario;
+    }
+
+    @Override
+    public Usuario verificarEncargado(Integer idAmbiente) {
+
+        Usuario usuario = obtenerUsuarioAutenticado();
 
         if (usuario.getRol() == null ||
                 usuario.getRol().getNombre() != Roles.ENCARGADO) {
@@ -77,24 +112,7 @@ public class UsuarioServiceImpl implements UsuarioService {
             );
         }
 
-        Authentication auth = SecurityContextHolder
-                .getContext()
-                .getAuthentication();
-
-        if (auth == null || !auth.isAuthenticated()
-                || "anonymousUser".equals(auth.getName())) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "Usuario no autenticado"
-            );
-        }
-
-        Usuario usuario = usuarioRepository
-                .findByCorreo(auth.getName())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "Usuario no encontrado"
-                ));
+        Usuario usuario = obtenerUsuarioAutenticado();
 
         usuario.setFcmToken(token.trim());
 
@@ -103,22 +121,8 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     public Usuario verificarEstudiante(Integer idEstudiante) {
-        Authentication auth = SecurityContextHolder
-                .getContext()
-                .getAuthentication();
 
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "Usuario no autenticado"
-            );
-        }
-
-        Usuario usuario = usuarioRepository.findByCorreo(auth.getName())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "Usuario no encontrado"
-                ));
+        Usuario usuario = obtenerUsuarioAutenticado();
 
         if (usuario.getRol() == null ||
                 usuario.getRol().getNombre() != Roles.ESTUDIANTE) {
@@ -136,5 +140,39 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
 
         return usuario;
+    }
+
+    @Override
+    public Usuario verificarAcceso(Integer idEstudiante, Integer idAmbiente) {
+        Authentication auth = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()
+                || "anonymousUser".equals(auth.getName())) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Usuario no autenticado"
+            );
+        }
+
+        boolean esEstudiante = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ESTUDIANTE".equals(a.getAuthority()));
+
+        boolean esEncargado = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ENCARGADO".equals(a.getAuthority()));
+
+        if (esEstudiante) {
+            return verificarEstudiante(idEstudiante);
+        }
+
+        if (esEncargado) {
+            return verificarEncargado(idAmbiente);
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "No tienes permisos para acceder a este registro"
+        );
     }
 }
