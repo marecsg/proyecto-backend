@@ -41,8 +41,17 @@ public class SecurityConfig {
                                 // Responder incidencias
                                 .requestMatchers(HttpMethod.PUT, "/api/incidencias/*/resolucion").hasRole("ENCARGADO")
 
-                                // Crear solicitudes e incidencias
-                                .requestMatchers(HttpMethod.POST, "/api/solicitudes", "/api/incidencias").hasRole("ESTUDIANTE")
+                                // Crear solicitudes
+                                .requestMatchers(HttpMethod.POST, "/api/solicitudes")
+                                .hasRole("ESTUDIANTE")
+
+                                 //crear incidencias
+                                .requestMatchers(HttpMethod.POST, "/api/incidencias")
+                                .hasAnyRole("ESTUDIANTE", "ENCARGADO")
+
+                                 // Catálogo del laboratorio asignado
+                                 .requestMatchers(HttpMethod.GET, "/api/equipos/ambiente/**")
+                                 .hasRole("ENCARGADO")
 
                         .anyRequest().authenticated() // El resto protegido
                 )

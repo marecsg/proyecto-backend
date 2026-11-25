@@ -126,6 +126,10 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
             );
         }
 
+        if (idAmbiente == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar un laboratorio");
+        }
+
         if (descripcion == null || descripcion.isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -133,11 +137,19 @@ public class TicketIncidenciaServiceImpl implements TicketIncidenciaService {
             );
         }
 
-        Usuario usuario = usuarioService.verificarEstudiante(idUsuario);
+        Usuario usuario = usuarioService.verificarAcceso(
+                idUsuario,
+                idAmbiente
+        );
 
-        if (idAmbiente == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar un laboratorio");
+        // Impedir reportes en nombre de otro usuario
+        if (!usuario.getIdUsuario().equals(idUsuario)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "No puedes reportar incidencias en nombre de otro usuario"
+            );
         }
+
 
         Ambiente ambiente = ambienteRepository.findById(idAmbiente)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ambiente no encontrado con ID: " + idAmbiente));

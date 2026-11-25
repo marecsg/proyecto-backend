@@ -5,6 +5,7 @@ import pe.edu.upeu.LabManager.Entity.Enums.Disponibilidad;
 import pe.edu.upeu.LabManager.Entity.Equipo;
 import pe.edu.upeu.LabManager.Repository.EquipoRepository;
 import pe.edu.upeu.LabManager.Services.EquipoService;
+import pe.edu.upeu.LabManager.Services.UsuarioService;
 
 import java.util.List;
 
@@ -14,8 +15,11 @@ public class EquipoServiceImpl implements EquipoService {
 
     private final EquipoRepository equipoRepository;
 
-    public EquipoServiceImpl(EquipoRepository equipoRepository) {
+    private final UsuarioService usuarioService;
+
+    public EquipoServiceImpl(EquipoRepository equipoRepository, UsuarioService usuarioService) {
         this.equipoRepository = equipoRepository;
+        this.usuarioService = usuarioService;
     }
 
     @Override
@@ -33,6 +37,13 @@ public class EquipoServiceImpl implements EquipoService {
     public Equipo listByCodigoQr(String codigoQr) {
         return equipoRepository.findByCodigoQr(codigoQr)
                 .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
+    }
+
+    @Override
+    public List<Equipo> listByAmbiente(Integer idAmbiente) {
+        usuarioService.verificarEncargado(idAmbiente);
+
+        return equipoRepository.findByAmbiente_IdAmbiente(idAmbiente);
     }
 
     @Override

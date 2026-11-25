@@ -50,6 +50,18 @@ public class EquipoController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/ambiente/{idAmbiente}")
+    public ResponseEntity<List<EquipoDto.Response>> listByAmbiente(
+            @PathVariable Integer idAmbiente
+    ) {
+        List<EquipoDto.Response> response = equipoService
+                .listByAmbiente(idAmbiente)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
 
     private EquipoDto.Response mapToResponse(Equipo equipo) {
         if (equipo == null) return null;

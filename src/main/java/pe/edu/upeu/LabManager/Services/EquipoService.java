@@ -9,5 +9,7 @@ public interface EquipoService {
     List<Equipo> listAll();
     Equipo listById(Integer idEquipo);
     Equipo listByCodigoQr(String codigoQr);
+
+    List<Equipo> listByAmbiente(Integer idAmbiente);
     List<Equipo> listByDisponibilidad(Disponibilidad disponibilidad);
 }
